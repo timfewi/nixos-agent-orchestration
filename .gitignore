@@ -1,0 +1,18 @@
+result
+result-*
+*.tmp
+*.bak
+
+# Local overrides — user-defined agents and secrets
+my-agents.nix
+secrets/*.env
+!secrets/hermes.env.example
+
+# Editor artifacts
+*.swp
+*.swo
+*~
+
+# Nix
+.direnv/
+.envrc
