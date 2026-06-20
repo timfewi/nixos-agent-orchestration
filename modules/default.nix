@@ -1,0 +1,11 @@
+[
+  ./boot.nix
+  ./hardening.nix
+  ./locale.nix
+  ./networking.nix
+  ./nix-settings.nix
+  ./packages.nix
+  ./tailscale.nix
+  ./users.nix
+  ./desktop/niri-noctalia.nix
+]

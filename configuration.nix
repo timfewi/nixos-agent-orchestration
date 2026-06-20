@@ -27,6 +27,9 @@ in
     # Optional: uncomment to enable Tailscale
     # ./modules/tailscale.nix
 
+    # Optional: uncomment to enable Niri + Noctalia desktop:
+    # ./modules/desktop/niri-noctalia.nix
+
     # ── Agent modules from my-agents.nix ──
   ]
   ++ myAgents;
