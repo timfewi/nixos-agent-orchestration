@@ -1,26 +1,35 @@
 <p align="center">
   <br/>
   <pre align="center">
-   ██████   ██████  ██████  ███████ ███    ██ ████████ 
-  ██       ██    ██ ██   ██ ██      ████   ██    ██    
-  ██   ███ ██    ██ ██████  █████   ██ ██  ██    ██    
-  ██    ██ ██    ██ ██   ██ ██      ██  ██ ██    ██    
-   ██████   ██████  ██   ██ ███████ ██   ████    ██    
+                 ╭─────────────────────╮
+                ╱       🐙  AGENT       ╲
+               │     Octopus Network     │
+               ╲   Multi-Agent System   ╱
+                ╰─────────────────────╯
+   ──╮     ╭──   ──╮     ╭──   ──╮     ╭──
+  ╱  ╰─────╯  ╲ ╱  ╰─────╯  ╲ ╱  ╰─────╯  ╲
+ │   🧠 NixOS   ││   🐳 Docker  ││   🔐 Agenix │
+ │  Orchestrator││  Containers  ││   Secrets   │
+  ╲  ╭─────╮  ╱ ╲  ╭─────╮  ╱ ╲  ╭─────╮  ╱
+   ──╯     ╰──   ──╯     ╰──   ──╯     ╰──
+     🎤 Piper       🔗 Tailscale      📡 Firecrawl
+     TTS Server       Network        Web Research
   </pre>
-  <h3 align="center">Agent Orchestration</h3>
   <p align="center">
-    <strong>Deploy & manage multiple isolated Hermes AI agents on a single NixOS machine.</strong>
+    <strong>🐙 One NixOS brain · Many Hermes tentacles</strong>
     <br/>
-    Declarative · Reproducible · Ephemeral containers · Per-agent secrets
+    Declaratively deploy & manage multiple isolated Hermes AI agents
+    <br/>
+    on a single NixOS machine — each with its own secrets, skills, and personality.
   </p>
 </p>
 
 <p align="center">
-  <a href="#-quick-start"><img src="https://img.shields.io/badge/Quickstart-%23262626?style=for-the-badge"/></a>
-  <a href="#-features"><img src="https://img.shields.io/badge/Features-%23262626?style=for-the-badge"/></a>
-  <a href="#-examples"><img src="https://img.shields.io/badge/Examples-%23262626?style=for-the-badge"/></a>
-  <a href="#-architecture"><img src="https://img.shields.io/badge/Architecture-%23262626?style=for-the-badge"/></a>
-  <a href="https://github.com/timfewi/nixos-agent-orchestration/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge"/></a>
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/🐙_Quickstart-%23262626?style=for-the-badge"/></a>
+  <a href="#-features"><img src="https://img.shields.io/badge/🔧_Features-%23262626?style=for-the-badge"/></a>
+  <a href="#-examples"><img src="https://img.shields.io/badge/📋_Examples-%23262626?style=for-the-badge"/></a>
+  <a href="#-architecture"><img src="https://img.shields.io/badge/🏗️_Architecture-%23262626?style=for-the-badge"/></a>
+  <a href="https://github.com/timfewi/nixos-agent-orchestration/blob/main/LICENSE"><img src="https://img.shields.io/badge/📄_License-MIT-green?style=for-the-badge"/></a>
 </p>
 
 ---
@@ -96,40 +105,36 @@ sudo nixos-rebuild switch --flake .#agent-host
 ## 🏗 Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                       NixOS Host                              │
-│                                                               │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │                  Nix Flake (flake.nix)                  │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │  │
-│  │  │  Agent A     │  │  Agent B     │  │  Agent C     │ │  │
-│  │  │  (coding)    │  │  (research)  │  │  (personal)  │ │  │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘ │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │
-│  │ Docker       │  │ Docker       │  │ Docker       │           │
-│  │ hermes-     │  │ hermes-     │  │ hermes-     │           │
-│  │ coding      │  │ research    │  │ personal    │           │
-│  │              │  │              │  │              │           │
-│  │ User:        │  │ User:        │  │ User:        │           │
-│  │ hermes-     │  │ hermes-     │  │ hermes-     │           │
-│  │ coding      │  │ research    │  │ personal    │           │
-│  │              │  │              │  │              │           │
-│  │ State:       │  │ State:       │  │ State:       │           │
-│  │ /var/lib/    │  │ /var/lib/    │  │ /var/lib/    │           │
-│  │ hermes-     │  │ hermes-     │  │ hermes-     │           │
-│  │ coding      │  │ research    │  │ personal    │           │
-│  │              │  │              │  │              │           │
-│  │ API Key: A   │  │ API Key: B   │  │ API Key: C   │           │
-│  │ Skills: ..   │  │ Skills: ..   │  │ Skills: ..   │           │
-│  └─────────────┘  └─────────────┘  └─────────────┘           │
-│                                                               │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Shared NixOS Services                      │  │
-│  │  📡 Piper TTS (localhost:5001)  🔗 Tailscale  🗄️ Docker  │  │
-│  └────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────┘
+                    🐙 Agent Orchestration
+                One NixOS brain · Many tentacles
+
+                          ╭─────────╮
+                         ╱  🧠 NixOS ╲
+                        │   Flake     │
+                        │  (config)   │
+                         ╲           ╱
+                          ╰─────────╯
+                    ┌───────┴───────┐
+                    │               │
+              ┌─────▼─────┐   ┌─────▼─────┐
+              │  Tentacle  │   │  Tentacle  │    ...
+              │  Agent A   │   │  Agent B   │
+              │  (coding)  │   │ (research) │
+              │            │   │            │
+              │  🐳 Docker │   │  🐳 Docker │
+              │  User:     │   │  User:     │
+              │  hermes-A  │   │  hermes-B  │
+              │  State:    │   │  State:    │
+              │  /var/lib/ │   │  /var/lib/ │
+              │  hermes-A  │   │  hermes-B  │
+              │            │   │            │
+              │  🔑 Key: A │   │  🔑 Key: B │
+              │  📚 Skills │   │  📚 Skills │
+              └────────────┘   └────────────┘
+
+     ───────────────── Shared Services ─────────────────
+    🎤 Piper TTS    🔗 Tailscale    🗄️ Docker    🔐 Agenix
+    (port 5001)     (mesh VPN)      (runtime)    (secrets)
 ```
 
 ### Key Design Decisions
