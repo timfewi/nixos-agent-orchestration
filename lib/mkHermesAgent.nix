@@ -34,7 +34,7 @@
   # Override with any OCI-compatible image, e.g.:
   #   image = "ubuntu:24.04";
   # You can then install hermes-agent inside via a Dockerfile.
-  image ? "ghcr.io/nousresearch/hermes-agent:latest",
+  image ? "nousresearch/hermes-agent:latest",
 
   # Secrets — path to a .env file on the host, e.g.:
   #   envFile = "/run/secrets/hermes-coding.env";
@@ -168,7 +168,6 @@ in
 
     extraOptions = [
       "--network=host"
-      "--user=${toString effectiveUid}"
     ];
   } extraContainerConfig;
 }
