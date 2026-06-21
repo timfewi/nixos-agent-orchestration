@@ -36,6 +36,12 @@
   # You can then install hermes-agent inside via a Dockerfile.
   image ? "nousresearch/hermes-agent:latest",
 
+  # Path to an env file (plaintext .env) on the host filesystem, e.g.:
+  #   envFile = "/run/hermes/default.env";
+  # The file is passed to Docker via --env-file and loaded at container start.
+  # Useful for live ISO / non-agenix setups where secrets are on tmpfs.
+  envFile ? null,
+
   # Path to an agenix-decrypted env file, e.g.:
   #   agenixFile = "/run/agenix/<name>-env";
   # The file is passed to Docker via --env-file and loaded at container start.
@@ -171,6 +177,9 @@ in
     merged
     // {
       # Append --env-file AFTER the merge so it's never lost
-      extraOptions = merged.extraOptions ++ lib.optional (agenixFile != null) "--env-file=${agenixFile}";
+      extraOptions =
+        merged.extraOptions
+        ++ lib.optional (envFile != null) "--env-file=${envFile}"
+        ++ lib.optional (agenixFile != null) "--env-file=${agenixFile}";
     };
 }

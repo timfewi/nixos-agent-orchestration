@@ -4,33 +4,31 @@
   pkgs,
   params,
   mkHermesAgent,
+  isLiveISO ? false,
   ...
 }:
 
 let
   # ── Import your agent definitions ──
-  # Create my-agents.nix and uncomment the line below.
-  # myAgents = import ./my-agents.nix { inherit mkHermesAgent; };
+  # In a fork, replace with: myAgentsConfig = import ./my-agents.nix;
+  # On the template, agents are empty — user provides their own my-agents.nix
   myAgents = [ ];
 in
 {
   imports = [
-    ./hardware-configuration.nix
     ./modules/boot.nix
+    ./modules/hardening.nix
     ./modules/locale.nix
     ./modules/networking.nix
-    ./modules/users.nix
     ./modules/nix-settings.nix
     ./modules/packages.nix
-    ./modules/hardening.nix
-
-    # Optional: uncomment to enable Tailscale
-    # ./modules/tailscale.nix
-
-    # Optional: uncomment to enable Niri + Noctalia desktop:
-    # ./modules/desktop/niri-noctalia.nix
-
-    # ── Agent modules from my-agents.nix ──
+    ./modules/tailscale.nix
+    ./modules/users.nix
+  ]
+  # ISO skips desktop module and hardware-config
+  ++ lib.optionals (!isLiveISO) [
+    ./modules/desktop/niri-noctalia.nix
+    ./hardware-configuration.nix
   ]
   ++ myAgents;
 

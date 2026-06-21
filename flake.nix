@@ -78,7 +78,10 @@
 
       # ── Single example host ──
       nixosConfigurations.agent-host = nixpkgs.lib.nixosSystem {
-        inherit system specialArgs;
+        inherit system;
+        specialArgs = specialArgs // {
+          isLiveISO = false;
+        };
         modules = [
           # Optional: import hermes-agent NixOS module for advanced use
           # inputs.hermes-agent.nixosModules.default
@@ -97,14 +100,33 @@
       # Build with: nix build .#installer-iso
       # Embeds entire repo at /etc/nixos-agent-orchestration/ on the ISO
       nixosConfigurations.installer-iso = nixpkgs.lib.nixosSystem {
-        inherit system specialArgs;
+        inherit system;
+        specialArgs = specialArgs // {
+          isLiveISO = false;
+        };
         modules = [
           ./installer/iso.nix
         ];
       };
 
-      # ── Convenience package: point to the ISO image file ──
-      packages.${system}.installer-iso =
-        self.nixosConfigurations.installer-iso.config.system.build.isoImage;
+      # ── Live agent ISO (Hermes agents + Piper TTS out of the box) ──
+      # Build with: nix build .#live-agent-iso
+      # Boot → enter API keys → agents running
+      nixosConfigurations.live-agent = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = specialArgs // {
+          isLiveISO = true;
+        };
+        modules = [
+          ./installer/live-iso.nix
+        ];
+      };
+
+      # ── Convenience packages ──
+      packages.${system} = {
+        installer-iso = self.nixosConfigurations.installer-iso.config.system.build.isoImage;
+        live-agent-iso = self.nixosConfigurations.live-agent.config.system.build.isoImage;
+        piper-voices = pkgs.callPackage ./pkgs/piper-voices { };
+      };
     };
 }
