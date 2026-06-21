@@ -121,9 +121,9 @@ sudo nixos-rebuild switch --flake .#agent-host
                         │  (config)   │
                          ╲           ╱
                           ╰─────────╯
-                    ┌───────┴───────┐
-                    │               │
-              ┌─────▼─────┐   ┌─────▼─────┐
+                    ┌───────┴────────┐
+                    │                │
+              ┌─────▼──────┐   ┌─────▼──────┐
               │  Tentacle  │   │  Tentacle  │    ...
               │  Agent A   │   │  Agent B   │
               │  (coding)  │   │ (research) │
