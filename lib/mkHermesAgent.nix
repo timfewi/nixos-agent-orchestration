@@ -36,14 +36,9 @@
   # You can then install hermes-agent inside via a Dockerfile.
   image ? "nousresearch/hermes-agent:latest",
 
-  # Secrets — path to a .env file on the host, e.g.:
-  #   envFile = "/run/secrets/hermes-coding.env";
-  # The file should contain:
-  #   OPENROUTER_API_KEY=sk-or-...
-  #
-  # Alternative: set agenixFile = "/run/agenix/hermes-key"
-  # The container will read it at startup via extraEnvironment.
-  envFile ? null,
+  # Path to an agenix-decrypted env file, e.g.:
+  #   agenixFile = "/run/agenix/<name>-env";
+  # The file is passed to Docker via --env-file and loaded at container start.
   agenixFile ? null,
 
   # Optional: path to a directory of base reference files (SOUL.md, AGENTS.md, BRAND.md, skills/)
@@ -176,9 +171,6 @@ in
     merged
     // {
       # Append --env-file AFTER the merge so it's never lost
-      extraOptions =
-        merged.extraOptions
-        ++ lib.optional (envFile != null) "--env-file=${envFile}"
-        ++ lib.optional (agenixFile != null) "--env-file=${agenixFile}";
+      extraOptions = merged.extraOptions ++ lib.optional (agenixFile != null) "--env-file=${agenixFile}";
     };
 }
