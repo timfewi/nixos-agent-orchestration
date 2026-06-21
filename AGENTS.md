@@ -2,17 +2,17 @@
 
 ## HARD RULE — Template Only
 
-This repo is a **generic public template** for running Hermes AI agents on NixOS.
+This repo is a **generic template** — it stays clean of domain-specific code.
 
-**NEVER** commit domain-specific, company-specific, or project-specific code to this repo. This includes:
-- Company names, brands, or product names (QPoint, Q-Point, etc.)
+**NEVER** commit domain-specific, company-specific, or project-specific code. This includes:
+- Company names, brands, or product names
 - Real hardware configurations (LUKS, specific disk layouts, real hostnames)
 - Real API keys, secrets, or env files
 - Agent definitions for specific companies or projects
 - Custom agent SOUL.md, AGENTS.md, or skill files written for a specific business
 - Any file referencing a real organization, person, or deployment
 
-All such content belongs in a **fork** or a **private repo**. This template must stay generic so others can fork it without cleaning out someone else's data.
+All such content belongs in a **fork** or **a private project repo**. This template must stay generic.
 
 ## Package Manager
 Use **nix**: `nix flake check`, `nix build .#installer-iso`
