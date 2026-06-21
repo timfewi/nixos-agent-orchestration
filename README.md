@@ -1,55 +1,67 @@
-# nixos-agent-orchestration
+<p align="center">
+  <br/>
+  <pre align="center">
+   ██████   ██████  ██████  ███████ ███    ██ ████████ 
+  ██       ██    ██ ██   ██ ██      ████   ██    ██    
+  ██   ███ ██    ██ ██████  █████   ██ ██  ██    ██    
+  ██    ██ ██    ██ ██   ██ ██      ██  ██ ██    ██    
+   ██████   ██████  ██   ██ ███████ ██   ████    ██    
+  </pre>
+  <h3 align="center">Agent Orchestration</h3>
+  <p align="center">
+    <strong>Deploy & manage multiple isolated Hermes AI agents on a single NixOS machine.</strong>
+    <br/>
+    Declarative · Reproducible · Ephemeral containers · Per-agent secrets
+  </p>
+</p>
 
-**Generic, forkable NixOS flake template for running multiple isolated Hermes agents on one headless machine.**
+<p align="center">
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/Quickstart-%23262626?style=for-the-badge"/></a>
+  <a href="#-features"><img src="https://img.shields.io/badge/Features-%23262626?style=for-the-badge"/></a>
+  <a href="#-examples"><img src="https://img.shields.io/badge/Examples-%23262626?style=for-the-badge"/></a>
+  <a href="#-architecture"><img src="https://img.shields.io/badge/Architecture-%23262626?style=for-the-badge"/></a>
+  <a href="https://github.com/timfewi/nixos-agent-orchestration/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge"/></a>
+</p>
 
-Each agent runs in its own Docker container with separate state directory, system user, API key, and configuration. Agents cannot read each other's context.
+---
 
-## Architecture
+## ✨ Features
 
-```
-┌─────────────────────────────────────────────────┐
-│                   NixOS Host                     │
-│                                                   │
-│  ┌─────────────┐  ┌─────────────┐                │
-│  │ Docker       │  │ Docker       │                │
-│  │ hermes-coding│  │ hermes-     │     ...         │
-│  │              │  │ research    │                │
-│  │ user:        │  │ user:       │                │
-│  │ hermes-coding│  │ hermes-     │                │
-│  │ state:       │  │ research    │                │
-│  │ /var/lib/    │  │ state:      │                │
-│  │ hermes-coding│  │ /var/lib/   │                │
-│  │              │  │ hermes-     │                │
-│  │ key: sk-...  │  │ research    │                │
-│  │              │  │             │                │
-│  └─────────────┘  └─────────────┘                │
-└─────────────────────────────────────────────────┘
-```
+| Capability | Description |
+|---|---|
+| **🧠 Multi-Agent** | Run any number of isolated Hermes agents on one machine |
+| **🔒 Per-Agent Secrets** | Each agent gets its own API keys — no cross-contamination |
+| **🐳 Docker Ephemeral** | Containers are stateless; personality + state live on mounted volumes |
+| **⚙️ NixOS Declarative** | Everything defined in one flake — `nixos-rebuild switch` applies changes |
+| **🔐 Agenix Support** | Encrypt secrets in-repo with age/agenix — decrypted at build time |
+| **🎤 TTS Ready** | Built-in Piper TTS server (OpenAI-compatible `/v1/audio/speech`) |
+| **📦 Live ISO** | Boot a USB with agents + TTS running out of the box — `nix build .#live-agent-iso` |
+| **🔗 Tailscale** | Pre-configured Tailscale module for secure networking |
 
-## Quick Start
+---
 
-### 1. Fork this flake
+## 🚀 Quick Start
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/your-org/nixos-agent-orchestration
 cd nixos-agent-orchestration
 ```
 
-### 2. Customize parameters in `flake.nix`
+### 2. Customize
 
-Edit the `params` block:
+Edit `flake.nix` — set your hostname, admin user, timezone:
 
 ```nix
 params = {
   hostName = "my-agent-box";
   adminUser = "alice";
-  adminDescription = "Alice the Admin";
-  timeZone = "America/New_York";
-  # ...
+  timeZone = "Europe/Vienna";
 };
 ```
 
-### 3. Define your agents
+### 3. Define an agent
 
 Create `my-agents.nix`:
 
@@ -67,121 +79,239 @@ Create `my-agents.nix`:
 
 ```bash
 sudo mkdir -p /run/secrets
-sudo cp secrets/hermes.env.example /run/secrets/hermes-coding.env
+sudo cp hermes.env.example /run/secrets/hermes-coding.env
 sudo chmod 600 /run/secrets/hermes-coding.env
 sudo vi /run/secrets/hermes-coding.env
 ```
 
-### 5. Rebuild
+### 5. Build & deploy
 
 ```bash
 nix flake check
 sudo nixos-rebuild switch --flake .#agent-host
 ```
 
-## Agent Configuration Reference
+---
+
+## 🏗 Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                       NixOS Host                              │
+│                                                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │                  Nix Flake (flake.nix)                  │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │  │
+│  │  │  Agent A     │  │  Agent B     │  │  Agent C     │ │  │
+│  │  │  (coding)    │  │  (research)  │  │  (personal)  │ │  │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘ │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │
+│  │ Docker       │  │ Docker       │  │ Docker       │           │
+│  │ hermes-     │  │ hermes-     │  │ hermes-     │           │
+│  │ coding      │  │ research    │  │ personal    │           │
+│  │              │  │              │  │              │           │
+│  │ User:        │  │ User:        │  │ User:        │           │
+│  │ hermes-     │  │ hermes-     │  │ hermes-     │           │
+│  │ coding      │  │ research    │  │ personal    │           │
+│  │              │  │              │  │              │           │
+│  │ State:       │  │ State:       │  │ State:       │           │
+│  │ /var/lib/    │  │ /var/lib/    │  │ /var/lib/    │           │
+│  │ hermes-     │  │ hermes-     │  │ hermes-     │           │
+│  │ coding      │  │ research    │  │ personal    │           │
+│  │              │  │              │  │              │           │
+│  │ API Key: A   │  │ API Key: B   │  │ API Key: C   │           │
+│  │ Skills: ..   │  │ Skills: ..   │  │ Skills: ..   │           │
+│  └─────────────┘  └─────────────┘  └─────────────┘           │
+│                                                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │              Shared NixOS Services                      │  │
+│  │  📡 Piper TTS (localhost:5001)  🔗 Tailscale  🗄️ Docker  │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| **One container per agent** | Full isolation — no shared context, separate filesystems |
+| **Host networking** | Agents reach local services (Piper, tailscale) via `localhost` |
+| **SeedDir over :ro volumes** | Hermes can write learned skills; base files seed once, never overwrite |
+| **Agenix or envFile** | Choose between encrypted-in-repo or plain-file secrets |
+| **Template stays generic** | This repo is a template. Fork it, add your agents, keep your secrets. |
+
+---
+
+## 📋 Agent Configuration
 
 ### `mkHermesAgent` options
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `name` | `string` | *(required)* | Agent identifier. Used for user, group, container name, state dir. |
-| `stateDir` | `string` | `/var/lib/hermes-<name>` | Isolated state directory for this agent. |
-| `user` | `string` | `hermes-<name>` | System user name. |
-| `group` | `string` | `hermes-<name>` | System group name. |
-| `uid` | `int` | `null` | Fixed UID (auto-assigned if null). |
-| `image` | `string` | `ghcr.io/nousresearch/hermes-agent:latest` | OCI container image. |
-| `envFile` | `path` | `null` | Path to `.env` file mounted into container. |
-| `agenixFile` | `path` | `null` | Path to agenix secret (alternative to envFile). |
-| `extraVolumes` | `list of string` | `[]` | Extra `host:container:mode` volume mounts. |
-| `extraEnvironment` | `attrset` | `{}` | Extra environment variables for container. |
-| `cmd` | `list of string` | `["gateway" "run" "--replace"]` | Container entrypoint override. |
-| `autoStart` | `bool` | `true` | Start container with system. |
-| `createUser` | `bool` | `true` | Create system user and group. |
-| `extraContainerConfig` | `attrset` | `{}` | Extra OCI container options (merged deep). |
+|---|---|---|---|
+| `name` | `string` | *(required)* | Agent identifier (user, group, container, state dir) |
+| `stateDir` | `string` | `/var/lib/hermes-<name>` | Isolated state directory |
+| `image` | `string` | `nousresearch/hermes-agent:latest` | OCI container image |
+| `envFile` | `path` | `null` | Path to `.env` file (injected via `--env-file`) |
+| `agenixFile` | `path` | `null` | Path to agenix-decrypted env file |
+| `seedDir` | `path` | `null` | Directory with SOUL.md, AGENTS.md, skills/ (seeded on first boot) |
+| `settings` | `attrset` | `null` | Hermes `config.yaml` (model routing, TTS, STT, toolsets) |
+| `extraVolumes` | `list` | `[]` | Extra `host:container:mode` mounts |
+| `extraEnvironment` | `attrset` | `{}` | Extra env vars for the container |
+| `extraContainerConfig` | `attrset` | `{}` | Extra Docker options (merged deep) |
+| `autoStart` | `bool` | `true` | Auto-start with systemd |
+| `cmd` | `list` | `["gateway" "run" "--replace"]` | Container entrypoint |
 
-## Modules
+---
 
-All modules in `modules/` consume parameters from `flake.nix`'s `params` attrset:
+## 🔐 Secret Management
 
-| Module | Key settings |
-|--------|-------------|
-| `boot.nix` | systemd-boot, EFI variables |
-| `locale.nix` | timezone, locale, keymap |
-| `networking.nix` | hostname, nftables, firewall |
-| `users.nix` | admin user with wheel + networkmanager |
-| `nix-settings.nix` | flakes, GC, trusted-users |
-| `packages.nix` | minimal CLI tools (curl, git, jq, tmux, vim) |
-| `hardening.nix` | sysctl, AppArmor, journald limits |
-| `tailscale.nix` | Tailscale with tag:agent + SSH (optional) |
+Two patterns — choose what fits your workflow:
 
-## Secret Management
-
-Two patterns supported:
-
-### 1. `.env` file (simpler — recommended)
+### 1. `.env` file (simpler)
 
 ```nix
 mkHermesAgent {
-  name    = "coding";
-  envFile = "/run/secrets/hermes-coding.env";
+  name    = "my-agent";
+  envFile = "/run/secrets/my-agent.env";
 }
 ```
 
-The file is mounted into the container at runtime. Contents:
-
 ```bash
+# Contents of /run/secrets/my-agent.env:
 OPENROUTER_API_KEY=sk-or-...
 TELEGRAM_BOT_TOKEN=...
 ```
 
-### 2. Agenix (for encrypted-in-repo secrets)
+### 2. Agenix (encrypted in Git)
 
 ```nix
 mkHermesAgent {
-  name        = "coding";
-  agenixFile  = "/run/agenix/hermes-key";
+  name        = "my-agent";
+  agenixFile  = "/run/agenix/my-agent-env";
 }
 ```
 
-Configure agenix paths in your `configuration.nix` following [agenix documentation](https://github.com/ryantm/agenix).
+```bash
+# Edit encrypted secrets:
+agenix -e secrets/my-agent.env.age
+```
 
-Both patterns keep secrets off the Nix store and never in Nix evaluation.
+Both patterns keep secrets **out of the Nix store** and **never in Nix evaluation**.
 
-## Commands
+---
+
+## 📦 Available Modules
+
+| Module | What it configures |
+|---|---|
+| `boot.nix` | systemd-boot, EFI, kernel params |
+| `locale.nix` | Timezone, locale, console keymap |
+| `networking.nix` | Hostname, nftables firewall, NetworkManager |
+| `users.nix` | Admin user (wheel + networkmanager groups) |
+| `nix-settings.nix` | Flakes, auto-GC, trusted-users, substituters |
+| `packages.nix` | curl, git, jq, tmux, vim, and more |
+| `hardening.nix` | Sysctl hardening, AppArmor, journald limits |
+| `tailscale.nix` | Tailscale with SSH + tag:auto (optional) |
+| `piper-tts-server.nix` | Local TTS via Piper (OpenAI-compatible API) |
+| `hermes-firstboot.nix` | USB env detection + first-boot TUI wizard (live ISO) |
+
+---
+
+## 🎯 Examples
+
+### Two agents — coding assistant + web researcher
+
+```nix
+{ mkHermesAgent }:
+[
+  (mkHermesAgent {
+    name    = "coding";
+    envFile = "/run/secrets/hermes-coding.env";
+    settings = {
+      model.default = "openrouter/anthropic/claude-sonnet-4";
+      model.provider = "openrouter";
+      terminal.backend = "docker";
+      web.backend = "disabled";
+      toolsets = [ "terminal" "memory" "file" "skills" ];
+    };
+  })
+  (mkHermesAgent {
+    name    = "research";
+    envFile = "/run/secrets/hermes-research.env";
+    settings = {
+      model.default = "openrouter/deepseek/deepseek-v4-flash";
+      model.provider = "openrouter";
+      web.backend = "firecrawl";
+      toolsets = [ "terminal" "web" "memory" "file" "skills" ];
+    };
+  })
+]
+```
+
+### Live ISO (demo or deployment)
 
 ```bash
-# Check flake validity
+# Build a bootable USB with Hermes agents + Piper TTS
+nix build .#live-agent-iso
+
+# Write to USB (replace /dev/sdX with your device)
+sudo cp result/iso/nixos-agent-orchestration-live.iso /dev/sdX
+
+# Boot it — enter API keys in the TUI wizard, agents start.
+# Or plug a USB labeled HERMES_ENV with .env files for zero-touch.
+```
+
+---
+
+## 🛠 Commands
+
+```bash
+# Validate flake
 nix flake check
+
+# Build live ISO (Hermes agents + TTS out of the box)
+nix build .#live-agent-iso
 
 # Dry-run activation
 sudo nixos-rebuild dry-activate --flake .#agent-host
 
-# Build and switch
+# Build and deploy
 sudo nixos-rebuild switch --flake .#agent-host
 
 # Rollback
 sudo nixos-rebuild switch --rollback
 
-# List containers
+# List running agents
 docker ps --filter "name=hermes-"
 
 # View agent logs
 docker logs hermes-coding
+
+# Chat with an agent
+docker exec -it hermes-coding hermes chat
 ```
 
-## Adding More Agents
+---
 
-1. Add a block to `my-agents.nix` using `mkHermesAgent`
-2. Create the corresponding `.env` file in `/run/secrets/`
-3. Rebuild
+## 🤝 Contributing
 
-Agents are fully isolated — separate Docker containers, separate system users, separate state directories, separate API keys.
+This is a community template — contributions welcome!
 
-## CI
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feat/amazing`)
+3. Commit your changes (`git commit -m "feat: add amazing thing"`)
+4. Push (`git push origin feat/amazing`)
+5. Open a Pull Request
 
-```bash
-nix flake check  # Validates the flake (no build needed for CI)
-```
+Please keep the template **generic** — no domain-specific code belongs here. That goes in your fork.
 
-The `.github/workflows/check.yml` workflow runs `nix flake check --no-build` on every push and PR.
+---
+
+## 📄 License
+
+<p align="center">
+  MIT — see <a href="https://github.com/timfewi/nixos-agent-orchestration/blob/main/LICENSE">LICENSE</a><br/>
+  <sub>Piper voice models distributed under their respective MIT licenses.</sub>
+</p>
