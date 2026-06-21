@@ -85,10 +85,7 @@ let
     else
       65534; # nobody fallback
 
-  # Optional agenix inject: if agenixFile set, read secret into env
-  agenixEnv = lib.optionalAttrs (agenixFile != null) {
-    OPENROUTER_API_KEY = "__from_agenix__";
-  };
+  # Environment files (envFile or agenixFile) — injected as KEY=VALUE into container
 
   # Generate config.yaml derivation when settings are provided
   yamlFormat = pkgs.formats.yaml { };
@@ -139,10 +136,12 @@ in
       HERMES_HOME = stateDir;
       HERMES_AGENT_NAME = name;
     }
-    // agenixEnv
     // extraEnvironment;
 
-    environmentFiles = lib.optional (envFile != null) envFile;
+    # Environment files (plain .env or agenix) — injected as KEY=VALUE
+    # agenixFile gets mounted at runtime, survives reboots
+    environmentFiles =
+      lib.optional (envFile != null) envFile ++ lib.optional (agenixFile != null) agenixFile;
 
     extraOptions = [
       "--network=host"

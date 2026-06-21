@@ -21,6 +21,12 @@
     #   url = "github:noctalia-dev/noctalia";
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
+
+    # Optional: uncomment for agenix encrypted secrets
+    # agenix = {
+    #   url = "github:ryantm/agenix";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
   };
 
   outputs =
@@ -37,16 +43,19 @@
       # Root of the repo — used by installer ISO to embed source
       repoRoot = ./.;
 
+      # ── Template constants (stateVersion, locale defaults) ──
+      constants = import ./lib/constants.nix;
+
       # ── Configurable parameters — override when forking ──
       params = {
-        hostName = "agent-host";
-        adminUser = "admin";
-        adminDescription = "System Administrator";
-        adminShell = "${pkgs.bash}/bin/bash";
+        hostName = constants.hostName;
+        adminUser = constants.adminUser;
+        adminDescription = constants.adminDescription;
+        adminShell = constants.adminShell;
         timeZone = "UTC";
-        defaultLocale = "en_US.UTF-8";
-        consoleKeyMap = "us";
-        stateVersion = "26.05";
+        defaultLocale = constants.defaultLocale;
+        consoleKeyMap = constants.consoleKeyMap;
+        stateVersion = constants.stateVersion;
       };
 
       # ── Shared mkHermesAgent helper ──
@@ -60,6 +69,7 @@
           params
           mkHermesAgent
           repoRoot
+          constants
           ;
       };
     in
@@ -75,6 +85,9 @@
 
           # Optional: uncomment for home-manager support
           # inputs.home-manager.nixosModules.home-manager
+
+          # Optional: uncomment for agenix encrypted secrets
+          # inputs.agenix.nixosModules.age
 
           ./configuration.nix
         ];
