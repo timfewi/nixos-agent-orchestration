@@ -27,11 +27,16 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/timfewi/nixos-agent-orchestration/actions"><img src="https://img.shields.io/github/actions/workflow/status/timfewi/nixos-agent-orchestration/check.yml?branch=main&style=flat-square" alt="CI status"/></a>
+  <a href="https://github.com/timfewi/nixos-agent-orchestration/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT"/></a>
+  <a href="https://github.com/timfewi/nixos-agent-orchestration/blob/main/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs welcome"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/nixos-unstable-blue?style=flat-square&logo=nixos" alt="NixOS unstable"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go 1.21+"/></a>
+  <br/>
   <a href="#-quick-start"><img src="https://img.shields.io/badge/🐙_Quickstart-%23262626?style=for-the-badge"/></a>
   <a href="#-features"><img src="https://img.shields.io/badge/🔧_Features-%23262626?style=for-the-badge"/></a>
   <a href="#-examples"><img src="https://img.shields.io/badge/📋_Examples-%23262626?style=for-the-badge"/></a>
   <a href="#-architecture"><img src="https://img.shields.io/badge/🏗️_Architecture-%23262626?style=for-the-badge"/></a>
-  <a href="https://github.com/timfewi/nixos-agent-orchestration/blob/main/LICENSE"><img src="https://img.shields.io/badge/📄_License-MIT-green?style=for-the-badge"/></a>
 </p>
 
 ---

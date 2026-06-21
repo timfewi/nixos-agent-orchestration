@@ -27,7 +27,7 @@ in
   ]
   # ISO skips desktop module and hardware-config
   ++ lib.optionals (!isLiveISO) [
-    ./modules/desktop/niri-noctalia.nix
+    # ./modules/desktop/niri-noctalia.nix  # Uncomment + uncomment noctalia input in flake.nix
     ./hardware-configuration.nix
   ]
   ++ myAgents;
