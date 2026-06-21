@@ -1,23 +1,46 @@
 <p align="center">
   <br/>
   <pre align="center">
-                                                                         
-                                                                         
-                        ___      ___            _                ____    
-                        `MM\     `M'           dM.              6MMMMb   
-                         MMM\     M           ,MMb             8P    Y8  
-                         M\MM\    M           d'YM.           6M      Mb 
-                         M \MM\   M          ,P `Mb           MM      MM 
-                         M  \MM\  M          d'  YM.          MM      MM 
-                         M   \MM\ M         ,P   `Mb          MM      MM 
-                         M    \MM\M MMMMMMM d'    YM. MMMMMMM MM      MM 
-                         M     \MMM        ,MMMMMMMMb         YM      M9 
-                         M      \MM        d'      YM.         8b    d8  
-                        _M_      \M      _dM_     _dMM_         YMMMM9   
-                                                                         
-                                                                         
-                                                                         
-                          🐙  One NixOS brain · Many Hermes tentacles
+                                                                
+                                                  2    ::     ƒ(                                                    
+                                                ó::ª:  ƒ::ª  ƒ::(                                                   
+                                                 ó::ª(  2:::ª::ó  ª(                                                
+                                             ƒªª::::::::::::::µ  ƒ::ƒ                                               
+                                            ó:::::::ªªªªªªª:::2 ƒ::(                                                
+                           ï                     ï::ƒ      ªª:ƒ2::ƒ:                  ï(                            
+                           ï              ƒïƒïïƒ:::ó        :à(::::::::ï              (                             
+                       :  ª(:             ª:::::::2Ö         ï::(ïïïïï(ƒ             :((: :                         
+                      ª:ÆÆµæÖÆà(:            :(::µ(:(       (::ƒ                  àƒÆÐµÖÆÆ ƒ                        
+                      àƒÆÆÐÖÆÆÐµó            ª::2 2:::æï((ªªª::::::::ï           ïÆµÆÆ¶ÐÆÆ:Ö:                       
+                       : ï2µóª:              ï:à  ƒ::::¶:::::::::ªª(2              ::ó22ƒ:ª                         
+              µÐÐÐæÐæà  (ª2àÖóƒ               (  (::ª:::ÐÆÆÆï::(                   :ƒà¶µƒƒ  µÆÆÆÆÆÆÐ                
+              ÆÆ¶Æ¶æÆÆ  ïƒ ààÖÆ                 ï::ªÆÆï::µÆÆÆà::(                  2ÆóÐï:µ  ÐÆµÆÆóÆæ                
+              ÆÆ¶ÐÆ¶ÆÆÆàÆÆÐÆæÆÆà                  ƒæÆÆÆæÐÐÆÆÆÆªª                  :ÆÆæÆææÆÐÆÆÆàÆæ¶ÆÆæ               
+              ÆÆÆÆÆÆÆÆÆÆÆÆï 2¶ÆÆÖ:                àÆÆÆÆÆÆÆÆÆÆÆÖ                  2ÆÆæÐ  2¶ÆÆÆÆÆÆÆÆÆæ                
+                    ï2:      ÖÆÆÆæ2(            ªàÆÆÆÆÆÆÆÆÆÆÆÆÆæó              óÐÆÆÆæ:     ƒÐ¶2                     
+            :                 2ÖÆÆÆÆæ2ƒƒ(: ªƒóóÐÆÆÖÆÆÆÆÆÆÆÆÆÆÆæÆÆæÖï2ï:  :ïóïÐÆÆÆÆæà                   :            
+            µ                   2µÆÆÆÆÆÆÆÆÆÆÆÆÆÆæÖÆÆÆ¶ÆÆÆÆÆÐÆÆÆæÖÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆ¶Ö                     µ            
+         :     ï                  :àÆÖ¶ÆÆÆÆÆÆÆÆóæÆÆÆÆ¶ÆÆÆÆÆÆÐÆÆÆÆÐ¶ÆÆÆÆÆÆÆÆÆàÐæï                    ª     :         
+        :ÖÆ¶ÆÆÆ ï        ó2æÆÆÆÆæ2µ(    ó(ƒÆƒ¶ÆÆÆÆÆÆàÆÆÆÆÆÆÆÆàÆÆÆÆÆæ2àà ªï      ƒµµæÆÆÆÆæó2        ((ÆæÆÆÆó         
+       ï(ÆÆÆ2ÆÆµµª     µÆÆÆæææÆÐÐÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆµÆÆÆÆµÐÆÆÆæƒÆÆÆÆÆÆÆÆÆÆæÐÐÆÆÆÆÆÆÆæÐÆÆæÐÆÆæï     ïÖÆÆÆóÆÆÆï(       
+        ::æÆÆÆó:      µÆÆÖÖƒ   ƒµÐÐÆÆÆÆÆÆÆÆÆÆÆÆÆà(ÖÆÆÆÆÖ  ÐÆÆÆÆÖóÖÆæÆÆÆÆÆÆÆÆÆÆÆæÆæÆµª  :ïàÆÆÆó       µÆÆÆ¶::        
+         ªƒÆÆ¶Ö(     æÆÆà           ªà¶ÖÐ¶¶Ð2ï µ¶ÆÆÆÆæÐ   :ÆæÆÆÆÆæ2: à¶ÖÐÆÐ¶ÖÐó(          (ÆÆÆ:     (ó¶Ææï(         
+        :¶ƒ:ï(ÆÆÆÐÐÆÆÆÆ2                  22ÖÆÆÆÆÆÆÐÐï      2ÆÖÆÆÆÆÆÆà2:                    2ÆÆÆÆÐµÆÆÆ:::ïÖ:        
+         ÆÆ µæÆÆ2àÖµÆÆï               :óÐÆÆÆÆÆÆÐæÖÖª          :2ÐÐæÐÆÆÆÆæó:                  :ÆÆ(ÆÆ:ÆÆÆÐ ÆÆ         
+          Ö¶æÐÆÆÆÖÖÆÆÆª              àÆÆÆ¶ÆÐæÐƒ(                  :óÐàµæÆÆÆ2                 ªÆÆÆÖµÐÆÆÆÆÆæ          
+              :ƒïƒƒƒï      ï        ÖÆÆÐÐï      :                 :    ï¶ÆÆÆµ          :       ª(((ªª:              
+                           ï       ÖÆÆÆó        ó                 ª      Ö¶ÆÆ2         ï                            
+                          (ƒï:     ¶Æ¶Ö      :  ::               ::  :    ¶æÆÐ     :  ::  :                         
+                       ïƒÆÐ¶2ÆÆïª  ÐÆ¶2     2ïÆÖ¶ÖÆà::       : ÐÆµ¶ÖÆ:2   µÆÆæ    ª:ÆÆµÐÆÆ ƒ                        
+                      :¶ïÆÆæÆÆÐµ2  æÆæ2    :æàÆæÐÆÆÐ2à       àƒæÆæ¶ÆÆƒæ   µÆÆÖ    ¶ªÆÆ¶ÐÆÆ:¶                        
+                        ::::::ª    ÐÆæó      ::(ïï:ª           ::(ïª::    2ÐÆ¶      :ªïïª::                         
+                   àÖ¶¶¶¶ÐÐ2ƒªó   :ÆÆ¶ï      ÖÖÖ¶¶Öàª         ªó2µà2ƒ2    ï¶ÆÆ:     (:ó2ïƒªÆÆÆÐÆÆÆ                  
+                   ÆÆàÖææÆÆÖ2(Æ(:2æÆÖµ     (ÆÆÆÆÆÆÆÆÆï       :ÆÆÆæàÆÆÆ¶    µÖÆæó:  Ðæó2óÖÆ¶ÆÆµÐÖÆÆ                  
+                  ÆÆÖ2óó2ÆÆÆÆÆÆÆÆÆÐ¶:     ¶ÆÖÆÆµÆÆÆÆÐÆª     ªÆæÆÐ2µ2ÆÆÐÆ    :ÐæÆÆÆÆÆææÆÆÆÆÆÆ¶ÆµæÆÆµ                 
+                   ÆÆÆÆÆÆÆÆ               2ÆÆÆÆÆÆÆÆÆÆÆ       ÆÆÆÆÆæÆÆÆÆÐ       ª:ï:       ªÆÆÆÆÆÆÆ                  
+
+                                       One NixOS brain · Many Hermes tentacles
+
   </pre>
   <p align="center">
     Declaratively deploy & manage multiple isolated Hermes AI agents
@@ -33,30 +56,30 @@
   <a href="#"><img src="https://img.shields.io/badge/nixos-unstable-blue?style=flat-square&logo=nixos" alt="NixOS unstable"/></a>
   <a href="#"><img src="https://img.shields.io/badge/go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go 1.21+"/></a>
   <br/>
-  <a href="#-quick-start"><img src="https://img.shields.io/badge/🐙_Quickstart-%23262626?style=for-the-badge"/></a>
-  <a href="#-features"><img src="https://img.shields.io/badge/🔧_Features-%23262626?style=for-the-badge"/></a>
-  <a href="#-examples"><img src="https://img.shields.io/badge/📋_Examples-%23262626?style=for-the-badge"/></a>
-  <a href="#-architecture"><img src="https://img.shields.io/badge/🏗️_Architecture-%23262626?style=for-the-badge"/></a>
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/_Quickstart-%23262626?style=for-the-badge"/></a>
+  <a href="#-features"><img src="https://img.shields.io/badge/_Features-%23262626?style=for-the-badge"/></a>
+  <a href="#-examples"><img src="https://img.shields.io/badge/_Examples-%23262626?style=for-the-badge"/></a>
+  <a href="#-architecture"><img src="https://img.shields.io/badge/_Architecture-%23262626?style=for-the-badge"/></a>
 </p>
 
 ---
 
-## ✨ Features
+## Features
 
 | Capability | Description |
 |---|---|
-| **🧠 Multi-Agent** | Run any number of isolated Hermes agents on one machine |
-| **🔒 Per-Agent Secrets** | Each agent gets its own API keys — no cross-contamination |
-| **🐳 Docker Ephemeral** | Containers are stateless; personality + state live on mounted volumes |
-| **⚙️ NixOS Declarative** | Everything defined in one flake — `nixos-rebuild switch` applies changes |
-| **🔐 Agenix Support** | Encrypt secrets in-repo with age/agenix — decrypted at build time |
-| **🎤 TTS Ready** | Built-in Piper TTS server (OpenAI-compatible `/v1/audio/speech`) |
-| **📦 Live ISO** | Boot a USB with agents + TTS running out of the box — `nix build .#live-agent-iso` |
-| **🔗 Tailscale** | Pre-configured Tailscale module for secure networking |
+| ** Multi-Agent** | Run any number of isolated Hermes agents on one machine |
+| ** Per-Agent Secrets** | Each agent gets its own API keys — no cross-contamination |
+| ** Docker Ephemeral** | Containers are stateless; personality + state live on mounted volumes |
+| ** NixOS Declarative** | Everything defined in one flake — `nixos-rebuild switch` applies changes |
+| ** Agenix Support** | Encrypt secrets in-repo with age/agenix — decrypted at build time |
+| ** TTS Ready** | Built-in Piper TTS server (OpenAI-compatible `/v1/audio/speech`) |
+| ** Live ISO** | Boot a USB with agents + TTS running out of the box — `nix build .#live-agent-iso` |
+| ** Tailscale** | Pre-configured Tailscale module for secure networking |
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Clone
 
@@ -128,7 +151,7 @@ sudo nixos-rebuild switch --flake .#agent-host
               │  Agent A   │   │  Agent B   │
               │  (coding)  │   │ (research) │
               │            │   │            │
-              │  🐳 Docker │   │  🐳 Docker │
+              │  📦 Docker │   │  📦 Docker │
               │  User:     │   │  User:     │
               │  hermes-A  │   │  hermes-B  │
               │  State:    │   │  State:    │
@@ -163,7 +186,7 @@ sudo nixos-rebuild switch --flake .#agent-host
 
 ---
 
-## 📋 Agent Configuration
+## Agent Configuration
 
 ### `mkHermesAgent` options
 
@@ -184,7 +207,7 @@ sudo nixos-rebuild switch --flake .#agent-host
 
 ---
 
-## 🔐 Secret Management
+## Secret Management
 
 Two patterns — choose what fits your workflow:
 
@@ -218,14 +241,14 @@ echo "OPENROUTER_API_KEY=sk-or-..." | agenix -e secrets/my-agent.env.age --stdin
 sudo nixos-rebuild switch --flake .#agent-host
 ```
 
-📖 **Full guide:** [`docs/04-agenix-secrets.md`](docs/04-agenix-secrets.md) — setup, architecture, troubleshooting  
-📋 **Template:** [`secrets.nix.example`](secrets.nix.example) — copy to `secrets.nix` to start
+ **Full guide:** [`docs/04-agenix-secrets.md`](docs/04-agenix-secrets.md) — setup, architecture, troubleshooting  
+ **Template:** [`secrets.nix.example`](secrets.nix.example) — copy to `secrets.nix` to start
 
 Both patterns keep secrets **out of the Nix store** and **never in Nix evaluation**.
 
 ---
 
-## 📦 Available Modules
+## Available Modules
 
 | Module | What it configures |
 |---|---|
