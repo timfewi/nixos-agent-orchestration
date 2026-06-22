@@ -107,14 +107,14 @@ cd tentaflake
 
 ### 2. Customize
 
-Edit `flake.nix` — set your hostname, admin user, timezone:
+Edit `flake.nix` — set your hostname, admin user, timezone via `tentaflake.*` options:
 
 ```nix
-params = {
-  hostName = "my-agent-box";
-  adminUser = "alice";
-  timeZone = "Europe/Vienna";
-};
+{
+  tentaflake.hostName = "my-agent-box";
+  tentaflake.adminUser = "alice";
+  tentaflake.timeZone = "Europe/Vienna";
+}
 ```
 
 ### 3. Define an agent
@@ -146,6 +146,46 @@ sudo vi /run/secrets/hermes-coding.env
 nix flake check
 sudo nixos-rebuild switch --flake .#agent-host
 ```
+
+##  Usage as Flake Input
+
+Consume tentaflake as a reusable module library in your own flake:
+
+```nix
+# your-flake.nix
+{
+  inputs.tentaflake.url = "github:timfewi/tentaflake";
+
+  outputs = { self, nixpkgs, tentaflake, ... }:
+  let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+    mkHermesAgent = tentaflake.lib.${system}.mkHermesAgent;
+  in {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      inherit system;
+      specialArgs = { inherit mkHermesAgent; };
+      modules = [
+        tentaflake.nixosModules.default
+        {
+          tentaflake.hostName = "my-machine";
+          tentaflake.adminUser = "alice";
+          tentaflake.timeZone = "Europe/Vienna";
+        }
+        ./hardware-configuration.nix
+        ./my-agents.nix
+      ];
+    };
+  };
+}
+```
+
+You get:
+- **`tentaflake.nixosModules.default`** — all base NixOS modules with configurable `tentaflake.*` options
+- **`tentaflake.lib.x86_64-linux.mkHermesAgent`** — agent creation helper (import and use in `my-agents.nix`)
+- **`tentaflake.lib.x86_64-linux.constants`** — default values (hostName, stateVersion, locale, etc.)
+
+See [`examples/consumer-flake.nix`](examples/consumer-flake.nix) for a full worked example.
 
 ---
 

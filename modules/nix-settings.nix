@@ -1,4 +1,12 @@
-{ params, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.tentaflake;
+in
 {
   nixpkgs.config.allowUnfree = true;
 
@@ -9,7 +17,7 @@
     ];
     trusted-users = [
       "root"
-      (params.adminUser or "admin")
+      cfg.adminUser
     ];
   };
 

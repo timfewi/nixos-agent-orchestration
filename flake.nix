@@ -16,12 +16,6 @@
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
 
-    # Optional: uncomment for Niri + Noctalia desktop (NNN stack)
-    # noctalia = {
-    #   url = "github:noctalia-dev/noctalia";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-
     # Optional: uncomment for agenix encrypted secrets
     # agenix = {
     #   url = "github:ryantm/agenix";
@@ -46,27 +40,17 @@
       # ── Template constants (stateVersion, locale defaults) ──
       constants = import ./lib/constants.nix;
 
-      # ── Configurable parameters — override when forking ──
-      params = {
-        hostName = constants.hostName;
-        adminUser = constants.adminUser;
-        adminDescription = constants.adminDescription;
-        adminShell = constants.adminShell;
-        timeZone = "UTC";
-        defaultLocale = constants.defaultLocale;
-        consoleKeyMap = constants.consoleKeyMap;
-        stateVersion = constants.stateVersion;
-      };
-
       # ── Shared mkHermesAgent helper ──
       mkHermesAgent = (import ./lib { inherit pkgs lib; }).mkHermesAgent;
 
-      # Passed to all NixOS modules via specialArgs
-      specialArgs = {
+      # Module set imported by external consumers and built-in hosts
+      tentaflakeModules = import ./modules/default.nix;
+
+      # Shared specialArgs — no params, just helpers
+      baseSpecialArgs = {
         inherit
           inputs
           self
-          params
           mkHermesAgent
           repoRoot
           constants
@@ -74,24 +58,33 @@
       };
     in
     {
+      # ── Exported module set ──
+      nixosModules.default = tentaflakeModules;
+
+      # ── Exported helpers ──
+      lib.${system} = { inherit mkHermesAgent constants; };
+
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
 
-      # ── Single example host ──
+      # ── Example host (consumes self via nixosModules) ──
       nixosConfigurations.agent-host = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = specialArgs // {
+        specialArgs = baseSpecialArgs // {
           isLiveISO = false;
         };
         modules = [
-          # Optional: import hermes-agent NixOS module for advanced use
-          # inputs.hermes-agent.nixosModules.default
-
-          # Optional: uncomment for home-manager support
-          # inputs.home-manager.nixosModules.home-manager
-
-          # Optional: uncomment for agenix encrypted secrets
-          # inputs.agenix.nixosModules.age
-
+          # Configure tentaflake options directly — no params specialArg
+          {
+            tentaflake.hostName = "agent-host";
+            tentaflake.adminUser = "admin";
+            tentaflake.adminDescription = "System Administrator";
+            tentaflake.adminShell = "${pkgs.bash}/bin/bash";
+            tentaflake.timeZone = "UTC";
+            tentaflake.defaultLocale = constants.defaultLocale;
+            tentaflake.consoleKeyMap = constants.consoleKeyMap;
+            tentaflake.stateVersion = constants.stateVersion;
+          }
+          self.nixosModules.default
           ./configuration.nix
         ];
       };
@@ -101,12 +94,10 @@
       # Embeds entire repo at /etc/tentaflake/ on the ISO
       nixosConfigurations.installer-iso = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = specialArgs // {
+        specialArgs = baseSpecialArgs // {
           isLiveISO = false;
         };
-        modules = [
-          ./installer/iso.nix
-        ];
+        modules = [ ./installer/iso.nix ];
       };
 
       # ── Live agent ISO (Hermes agents + Piper TTS out of the box) ──
@@ -114,10 +105,22 @@
       # Boot → enter API keys → agents running
       nixosConfigurations.live-agent = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = specialArgs // {
+        specialArgs = baseSpecialArgs // {
           isLiveISO = true;
         };
         modules = [
+          {
+            tentaflake.hostName = "live-agent";
+            tentaflake.adminUser = "admin";
+            tentaflake.adminDescription = "System Administrator";
+            tentaflake.adminShell = "/run/current-system/sw/bin/bash";
+            tentaflake.timeZone = "UTC";
+            tentaflake.defaultLocale = constants.defaultLocale;
+            tentaflake.consoleKeyMap = constants.consoleKeyMap;
+            tentaflake.stateVersion = constants.stateVersion;
+          }
+          self.nixosModules.default
+          ./configuration.nix
           ./installer/live-iso.nix
         ];
       };

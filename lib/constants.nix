@@ -1,8 +1,8 @@
 # ────────────────────────────────────────────────────────────
 # constants.nix — Template-wide constants
 #
-# Single source of truth for values shared across modules.
-# Override these in your fork's flake.nix params if needed.
+# Single source of truth for default values shared across modules.
+# Override these via tentaflake.* options in your host configuration.
 # ────────────────────────────────────────────────────────────
 
 {
@@ -20,7 +20,7 @@
   adminUser = "admin";
 
   # Default shell
-  # NOTE: Override in your flake.nix params to ${pkgs.bash}/bin/bash for portability
+  # NOTE: Override via tentaflake.adminShell to ${pkgs.bash}/bin/bash for portability
   adminShell = "/run/current-system/sw/bin/bash";
 
   # Default user description

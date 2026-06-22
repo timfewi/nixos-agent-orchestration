@@ -5,6 +5,7 @@ result-*
 
 # Local overrides — user-defined agents and secrets
 my-agents.nix
+home.nix
 secrets/*.env
 !secrets/hermes.env.example
 

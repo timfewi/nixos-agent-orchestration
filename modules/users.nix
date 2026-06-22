@@ -1,13 +1,21 @@
-{ params, pkgs, ... }:
 {
-  users.users.${params.adminUser or "admin"} = {
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.tentaflake;
+in
+{
+  users.users.${cfg.adminUser} = {
     isNormalUser = true;
-    description = params.adminDescription or "System Administrator";
+    description = cfg.adminDescription;
     extraGroups = [
       "networkmanager"
       "wheel"
     ];
-    shell = params.adminShell or "${pkgs.bash}/bin/bash";
+    shell = cfg.adminShell;
   };
 
   # Enable a solid default shell

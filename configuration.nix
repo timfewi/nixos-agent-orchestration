@@ -2,35 +2,22 @@
   config,
   lib,
   pkgs,
-  params,
-  mkHermesAgent,
   isLiveISO ? false,
   ...
 }:
-
 let
+  cfg = config.tentaflake;
   # ── Import your agent definitions ──
-  # In a fork, replace with: myAgentsConfig = import ./my-agents.nix;
+  # In a fork, replace with: myAgents = import ./my-agents.nix { inherit mkHermesAgent; };
   # On the template, agents are empty — user provides their own my-agents.nix
   myAgents = [ ];
 in
 {
-  imports = [
-    ./modules/boot.nix
-    ./modules/hardening.nix
-    ./modules/locale.nix
-    ./modules/networking.nix
-    ./modules/nix-settings.nix
-    ./modules/packages.nix
-    ./modules/tailscale.nix
-    ./modules/users.nix
-  ]
-  # ISO skips desktop module and hardware-config
-  ++ lib.optionals (!isLiveISO) [
-    # ./modules/desktop/niri-noctalia.nix  # Uncomment + uncomment noctalia input in flake.nix
-    ./hardware-configuration.nix
-  ]
-  ++ myAgents;
+  imports =
+    myAgents
+    ++ lib.optionals (!isLiveISO) [
+      ./hardware-configuration.nix
+    ];
 
   # ── OCI container backend (required for agent containers) ──
   virtualisation.oci-containers.backend = "docker";
@@ -40,7 +27,7 @@ in
   };
 
   # ── Admin user in docker group for container management ──
-  users.users.${params.adminUser}.extraGroups = [ "docker" ];
+  users.users.${cfg.adminUser}.extraGroups = [ "docker" ];
 
-  system.stateVersion = params.stateVersion;
+  system.stateVersion = cfg.stateVersion;
 }

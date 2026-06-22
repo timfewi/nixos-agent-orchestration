@@ -21,7 +21,6 @@
 {
   imports = [
     "${modulesPath}/installer/cd-dvd/iso-image.nix"
-    ../configuration.nix
     ./live-profile.nix
   ];
 
