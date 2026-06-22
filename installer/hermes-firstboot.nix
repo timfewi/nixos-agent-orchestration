@@ -18,22 +18,39 @@ let
     ENV_DIR="/run/hermes"
     mkdir -p "$ENV_DIR"
 
+    # ── Copy env files from a labeled HERMES_ENV USB, if present ──
     USB_DEV=$(blkid -l -o device -t LABEL=HERMES_ENV 2>/dev/null || true)
-    [ -z "$USB_DEV" ] && exit 0
+    if [ -n "$USB_DEV" ]; then
+      mkdir -p /mnt/hermes-env
+      if mount "$USB_DEV" /mnt/hermes-env 2>/dev/null; then
+        for f in /mnt/hermes-env/*.env; do
+          [ -f "$f" ] || continue
+          name=$(basename "$f" .env)
+          cp "$f" "''${ENV_DIR}/''${name}.env"
+          chmod 600 "''${ENV_DIR}/''${name}.env"
+          echo "hermes-env-detect: loaded ''${name}.env from USB"
+        done
+        umount /mnt/hermes-env 2>/dev/null || true
+      fi
+      rmdir /mnt/hermes-env 2>/dev/null || true
+    fi
 
-    mkdir -p /mnt/hermes-env
-    mount "$USB_DEV" /mnt/hermes-env 2>/dev/null || exit 0
-
-    for f in /mnt/hermes-env/*.env; do
-      [ -f "$f" ] || continue
-      name=$(basename "$f" .env)
-      cp "$f" "''${ENV_DIR}/''${name}.env"
-      chmod 600 "''${ENV_DIR}/''${name}.env"
-      echo "hermes-env-detect: loaded ''${name}.env from USB"
+    # ── Ensure every agent has an env file so `docker run --env-file` never
+    # fails on a cold boot. Agents are enumerated from their systemd units,
+    # so this stays generic (works for docker- and podman- backends and any
+    # agent set). Missing files get an empty placeholder; the firstboot
+    # wizard later overwrites them with real keys and restarts the units. ──
+    for unit in $(systemctl list-unit-files --no-legend 'docker-hermes-*.service' 'podman-hermes-*.service' 2>/dev/null | awk '{print $1}'); do
+      name=''${unit#docker-hermes-}
+      name=''${name#podman-hermes-}
+      name=''${name%.service}
+      envf="''${ENV_DIR}/''${name}.env"
+      if [ ! -f "$envf" ]; then
+        touch "$envf"
+        chmod 600 "$envf"
+        echo "hermes-env-detect: created placeholder ''${name}.env (awaiting firstboot wizard)"
+      fi
     done
-
-    umount /mnt/hermes-env 2>/dev/null || true
-    rmdir /mnt/hermes-env 2>/dev/null || true
   '';
 
   # USB HERMES_DATA auto-mounter (persistent state across reboots)
@@ -76,12 +93,16 @@ in
     };
   };
 
-  # ── USB data persistence (after env, before Docker) ──
+  # ── USB data persistence (after env + tmpfiles, before Docker) ──
+  # MUST run after systemd-tmpfiles-setup: mkHermesAgent creates the
+  # /var/lib/hermes-<name> state dirs via tmpfiles. If this service ran first
+  # the glob below would match nothing and persistence would silently no-op.
   systemd.services.hermes-data-mount = {
     description = "Mount USB HERMES_DATA partition for persistent agent state";
     requires = [ "local-fs.target" ];
     after = [
       "local-fs.target"
+      "systemd-tmpfiles-setup.service"
       "hermes-env-detect.service"
     ];
     before = [ "docker.service" ];

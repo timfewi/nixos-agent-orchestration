@@ -83,7 +83,8 @@
 | **NixOS Declarative** | Everything defined in one flake — `nixos-rebuild switch` applies changes |
 | **Agenix Support** | Encrypt secrets in-repo with age/agenix — decrypted at build time |
 | **TTS Ready** | Built-in Piper TTS server (OpenAI-compatible `/v1/audio/speech`) |
-| **Live ISO** | Bootable installer USB with interactive setup wizard — `nix build .#installer-iso` |
+| **Installer ISO** | Bootable USB that installs Tentaflake to disk — `nix build .#installer-iso` |
+| **Live Agent ISO** | Bootable USB that runs agents + TTS entirely in RAM, no install — `nix build .#live-agent-iso` ([guide](#-live-agent-iso--run-in-ram-no-install)) |
 | **Tailscale** | Pre-configured Tailscale module for secure networking |
 | **Filesystem Audit** | Optional audit daemon tracks agent state changes — `tentaflake.hermes-auditd.enable = true` |
 
@@ -189,6 +190,130 @@ You get:
 - **`tentaflake.lib.x86_64-linux.constants`** — default values (hostName, stateVersion, locale, etc.)
 
 See [`examples/consumer-flake.nix`](examples/consumer-flake.nix) for a full worked example.
+
+---
+
+## 💿 Live Agent ISO — Run in RAM, No Install
+
+The **live agent ISO** boots a machine straight into a running swarm — agents, Piper
+TTS, Tailscale — **without touching the host's disk**. Power off (or pull the USB) and
+every trace is gone. Use it for demos, evaluation, recovery, or a throwaway agent box.
+
+This is distinct from the **installer ISO** (`#installer-iso`), which formats a disk and
+installs Tentaflake permanently.
+
+### How "runs in RAM" actually works
+
+A live ISO is **read-only** — you can't write to a pressed CD or a `dd`-imaged USB while
+booting from it. NixOS solves this the same way every live distro does, and that's what
+gives you the no-trace property:
+
+1. The ISO carries a **read-only squashfs** holding the entire Nix store (`/nix/store`).
+2. At boot, NixOS mounts a **tmpfs** (a RAM-backed filesystem) and stacks it over the
+   squashfs as an **overlay**. Reads fall through to the squashfs; **every write lands in
+   the tmpfs — i.e. in RAM**.
+3. So `/`, `/var`, `/run`, `/home` are all writable, but writes exist **only in memory**.
+   Nothing is written to the USB stick or to any internal disk.
+4. On shutdown the RAM is cleared. The host's own disks were never mounted or modified —
+   the machine boots back into whatever OS it had before, untouched.
+
+```
+┌─────────────────────────── RAM ───────────────────────────┐
+│  tmpfs overlay (writable)  ← all writes go here, vanish    │
+│        on top of                  on power-off             │
+│  ╔══════════════════════════════════════════════════════╗ │
+│  ║  squashfs  /nix/store  (read-only, from the USB)      ║ │
+│  ╚══════════════════════════════════════════════════════╝ │
+└────────────────────────────────────────────────────────────┘
+        the USB stick itself is never written to
+```
+
+### Docker vs Podman — which is it?
+
+**Docker.** Agents run as Docker containers (`tentaflake.containerBackend` defaults to
+`"docker"`). Podman is a supported alternative — set `tentaflake.containerBackend =
+"podman"` — but the live ISO ships with Docker.
+
+The important consequence for a live system: **Docker's data dir (`/var/lib/docker`) lives
+on the tmpfs overlay, so the Hermes container image is pulled into RAM.** That image is
+**~2 GB**. Plan memory accordingly:
+
+| Machine RAM | Live ISO experience |
+|---|---|
+| **< 4 GB** | Not enough — the image pull will fill the overlay and stall |
+| **4–8 GB** | Works, but tight; one or two agents |
+| **8 GB+** | Comfortable for the default `default` + `research` agents |
+
+The image is pulled from Docker Hub on first agent start, so the **first boot needs
+network** (Ethernet/Wi-Fi via NetworkManager). After the pull, agents start within a
+minute or two.
+
+### Build it
+
+```bash
+nix build .#live-agent-iso
+# → result/iso/tentaflake-live.iso
+```
+
+### Write it to a USB stick
+
+> ⚠️ `dd` is destructive — triple-check `of=` is your USB device, not your disk.
+
+```bash
+lsblk                                   # identify the USB, e.g. /dev/sdX
+sudo dd if=result/iso/tentaflake-live.iso of=/dev/sdX bs=4M status=progress oflag=sync
+```
+
+The image is a UEFI + legacy-BIOS hybrid, so it boots on both modern and older machines.
+
+### Boot and configure
+
+1. Boot the target machine from the USB (UEFI/BIOS boot menu).
+2. It auto-logs into TTY1 and launches the **firstboot wizard**.
+3. Enter your keys when prompted:
+   - **OpenRouter API key** — required (model access)
+   - **Telegram bot token** — optional (chat interface)
+   - **Firecrawl API key** — optional (web search)
+   - **Groq API key** — optional (speech-to-text)
+4. The wizard writes the keys to `/run/hermes/<agent>.env` (tmpfs → RAM) and restarts the
+   agent containers. Piper TTS is already serving on **http://localhost:5001/v1**.
+5. To re-run the wizard: `rm /run/hermes/.configured` and re-login on TTY1.
+
+### Skip the wizard with a `HERMES_ENV` USB
+
+For unattended boots, put your `.env` files on a **second** USB stick labeled
+`HERMES_ENV`, one per agent (`default.env`, `research.env`):
+
+```bash
+sudo mkfs.ext4 -L HERMES_ENV /dev/sdY1     # label is what matters
+# copy default.env, research.env onto it
+```
+
+On boot the system auto-detects the label, copies the env files in, and starts the agents
+**without prompting**.
+
+### Optional: persist state across reboots
+
+By design nothing survives a reboot. If you *want* persistence (agent memory, learned
+skills), attach a USB labeled `HERMES_DATA`:
+
+```bash
+sudo mkfs.ext4 -L HERMES_DATA /dev/sdZ1
+```
+
+At boot, each agent's state dir (`/var/lib/hermes-<name>`) is redirected onto that USB, so
+memory and skills carry over between sessions. Without it, the system stays fully
+ephemeral.
+
+### What's where
+
+| File | Role |
+|---|---|
+| `installer/live-iso.nix` | ISO entry point (UEFI/USB boot, hostname, embedded repo) |
+| `installer/live-profile.nix` | Live system: auto-login, Piper TTS, Tailscale, SSH, agents |
+| `installer/live-agents.nix` | The two default live agents (`default`, `research`) |
+| `installer/hermes-firstboot.nix` | `HERMES_ENV`/`HERMES_DATA` USB detection + wizard wiring |
+| `installer/firstboot.sh` | The interactive API-key TUI wizard |
 
 ---
 
