@@ -74,7 +74,7 @@
 | **NixOS Declarative** | Everything defined in one flake — `nixos-rebuild switch` applies changes |
 | **Agenix Support** | Encrypt secrets in-repo with age/agenix — decrypted at build time |
 | **TTS Ready** | Built-in Piper TTS server (OpenAI-compatible `/v1/audio/speech`) |
-| **Live ISO** | Boot a USB with agents + TTS running out of the box — `nix build .#live-agent-iso` |
+| **Live ISO** | Bootable installer USB with interactive setup wizard — `nix build .#installer-iso` |
 | **Tailscale** | Pre-configured Tailscale module for secure networking |
 
 ---
@@ -290,17 +290,17 @@ Both patterns keep secrets **out of the Nix store** and **never in Nix evaluatio
 ]
 ```
 
-### Live ISO (demo or deployment)
+### Installer ISO (bare-metal deployment)
 
 ```bash
-# Build a bootable USB with Hermes agents + Piper TTS
-nix build .#live-agent-iso
+# Build the bootable installer ISO
+nix build .#installer-iso
 
 # Write to USB (replace /dev/sdX with your device)
-sudo cp result/iso/nixos-agent-orchestration-live.iso /dev/sdX
+sudo cp result/iso/nixos-agent-orchestration.iso /dev/sdX
 
-# Boot it — enter API keys in the TUI wizard, agents start.
-# Or plug a USB labeled HERMES_ENV with .env files for zero-touch.
+# Boot it — the interactive TUI wizard will guide you through
+# partitioning and installing NixOS with this orchestration framework.
 ```
 
 ---
@@ -311,8 +311,8 @@ sudo cp result/iso/nixos-agent-orchestration-live.iso /dev/sdX
 # Validate flake
 nix flake check
 
-# Build live ISO (Hermes agents + TTS out of the box)
-nix build .#live-agent-iso
+# Build installer ISO
+nix build .#installer-iso
 
 # Dry-run activation
 sudo nixos-rebuild dry-activate --flake .#agent-host
@@ -331,6 +331,173 @@ docker logs hermes-coding
 
 # Chat with an agent
 docker exec -it hermes-coding hermes chat
+```
+
+---
+
+## `hermes-auditd` — Filesystem Audit Daemon
+
+Go-based daemon that monitors Hermes agent state directories for filesystem changes. Lives at [`pkgs/hermes-auditd/`](pkgs/hermes-auditd/).
+
+Uses **fsnotify** for recursive directory watching, debounces rapid events (100 ms coalescing window per file), and persists events to **SQLite** (pure Go via `modernc.org/sqlite` — no CGo).
+
+Agent names extracted from path convention: `/var/lib/hermes-<name>/...` → `<name>`.
+
+### Data Flow
+
+```
+fsnotify event → isIgnored? (filter .git, node_modules, .db files)
+               → toEvent() (stat file for size, extract agent from path)
+               → debounceMap (100ms per-file coalesce)
+               → hermes.Event channel (buffered 100)
+               → store.Start() consumer goroutine
+                   ├── INSERT INTO events (SQLite, WAL mode)
+                   └── non-blocking forward to notifyCh (broadcast, future use)
+               → PruneLoop (every 10 min, delete older than retention)
+```
+
+### Event Model
+
+```go
+type Event struct {
+    ID        int64     `json:"id"`
+    Agent     string    `json:"agent"`       // extracted from /var/lib/hermes-<name>/...
+    File      string    `json:"file"`        // absolute path to changed file
+    Op        string    `json:"op"`          // create|write|remove|rename|chmod
+    Timestamp time.Time `json:"timestamp"`
+    Size      int64     `json:"size,omitempty"`
+}
+```
+
+### Configuration
+
+All via environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `AUDIT_PORT` | `9090` | HTTP/WebSocket listen port (future use) |
+| `AUDIT_DB_PATH` | `/var/lib/hermes-audit/events.db` | Path to SQLite database |
+| `AUDIT_WATCH_DIRS` | *(required)* | Comma-separated directories to monitor |
+| `AUDIT_RETENTION_HOURS` | `24` | Event retention window before pruning |
+
+### Watcher Features
+
+- **Recursive** — walks directory tree on startup, adds every subdirectory to fsnotify
+- **Noise filter** — skips `.git`, `node_modules`, SQLite auxiliary files (`.db`, `.db-wal`, `.db-shm`)
+- **New directories** — on `Create` events, automatically watches new subdirectories
+- **Agent extraction** — parses `/var/lib/hermes-<name>/...` → `<name>`, falls back to `"unknown"`
+- **Graceful shutdown** — flushes pending events on SIGINT/SIGTERM
+
+### Store Features
+
+- Built with `modernc.org/sqlite` — pure Go, no CGo dependency
+- WAL journal mode with `synchronous=NORMAL` for read concurrency
+- Schema auto-migrated on startup, no migration tooling needed
+- Query: filter by agent name, time range, with limit
+- Stats: per-agent event counts over any time window
+- Pruning: automatic, runs every 10 minutes, deletes events older than retention period
+
+### Build & Run
+
+```bash
+# Build
+cd pkgs/hermes-auditd
+go build -o hermes-auditd ./cmd/hermes-auditd
+
+# Run (example)
+export AUDIT_WATCH_DIRS="/var/lib/hermes-coding,/var/lib/hermes-research"
+export AUDIT_DB_PATH="/var/lib/hermes-audit/events.db"
+./hermes-auditd
+```
+
+### Package Structure
+
+```
+pkgs/hermes-auditd/
+├── cmd/hermes-auditd/main.go     # Entrypoint, lifecycle
+├── internal/
+│   ├── config/config.go          # Environment variable config
+│   ├── hermes/event.go           # Shared Event type (only cross-package type)
+│   ├── watcher/watcher.go        # fsnotify watcher + debounce
+│   └── store/
+│       ├── schema.go             # SQLite DDL + pragmas
+│       └── store.go              # Insert, Query, Stats, Prune
+```
+
+---
+
+## Installer ISO — Bootable USB Deployment
+
+Bootable NixOS installer ISO with an interactive installation wizard. Designed for deploying this orchestration framework onto bare metal.
+
+### Build
+
+```bash
+# Using the convenience script
+./scripts/build-iso.sh
+
+# Or directly with nix
+nix build .#installer-iso
+```
+
+ISO configured in [`installer/iso.nix`](installer/iso.nix). Features:
+- **UEFI + USB hybrid boot** — works with modern firmware and `dd` to USB
+- **Full repo embedded** at `/etc/nixos-agent-orchestration/` — self-contained, no network fetch for sources
+- **NetworkManager** active for install-time internet
+- **SSH access** with password auth for remote debugging during installation
+- **TTY1 auto-launch** — root auto-login, installer starts immediately
+
+### Interactive Installer (`installer.sh`)
+
+`dialog`-based TUI wizard that guides through full NixOS installation:
+
+| Step | What happens |
+|------|-------------|
+| **1. Welcome** | Explains the installer, requirements, confirms intent |
+| **2. Hostname** | Prompts for system hostname (default: `agent-machine`) |
+| **3. Username** | Prompts for primary admin username (default: `agent`) |
+| **4. Password** | Password entry with confirmation loop |
+| **5. Disk** | Menu of detected disks via `lsblk` — ALL DATA WILL BE WIPED |
+| **6. Timezone** | Timezone input (default: `UTC`) |
+| **7. Confirm** | Summary review with final confirmation |
+| **8. Partition** | Creates GPT layout: 1 GB EFI (FAT32) + rest as ext4 root |
+| **9. Hardware** | Runs `nixos-generate-config` on target |
+| **10. Config** | Copies modules, generates `user-config.nix` + `flake.nix` |
+| **11. Install** | Runs `nixos-install --flake` (10–15 min build) |
+| **12. Done** | Sets passwords, copies examples, unmounts, reboots |
+
+### Partition Layout
+
+```
+GPT:
+  1: 1 MiB – 1025 MiB   FAT32   BOOT   esp
+  2: 1025 MiB – 100%    ext4    nixos
+```
+
+Works with NVMe (`nvme0n1p1/p2`), mmcblk, and SATA (`sda1/sda2`) naming.
+
+### Boot Flow
+
+1. Boot ISO → systemd starts → root auto-login on TTY1
+2. Bash `interactiveShellInit` detects TTY1, sets `INSTALLER_RUN=1`
+3. Launches `/etc/nixos-agent-orchestration/installer/installer.sh`
+4. After installation completes, system unmounts and reboots
+
+### Flake Configuration
+
+ISO exposed as NixOS configuration in `flake.nix`:
+
+```nix
+nixosConfigurations.installer-iso = nixpkgs.lib.nixosSystem {
+  inherit system specialArgs;
+  modules = [ ./installer/iso.nix ];
+};
+```
+
+Convenience package:
+
+```bash
+nix build .#installer-iso
 ```
 
 ---
