@@ -484,7 +484,7 @@ if ! nixos-install --flake "$TARGET_NIXOS#$HOSTNAME" --root /mnt \
 
 $LOG_TAIL
 
-Full log: $INSTALL_LOG (Ctrl+Alt+F2 -> root to read it)" 24 76
+Full log: $INSTALL_LOG" 24 76
   exit 1
 fi
 

@@ -43,21 +43,11 @@
   # ── NetworkManager for install-time connectivity ──
   networking.networkmanager.enable = true;
 
-  # ── SSH access for debugging (optional) ──
-  services.openssh.enable = true;
-  services.openssh.settings.PasswordAuthentication = true;
-  services.openssh.settings.PermitRootLogin = lib.mkForce "yes";
-  services.openssh.settings.PermitEmptyPasswords = true;
-
-  # ── Empty root password so a debug console is reachable ──
-  # The installer loops on TTY1 (autologin → installer.sh → relogin), so the
-  # only way to a shell to read /tmp/installer.log is another VT (Ctrl+Alt+F2)
-  # or SSH. An unset root password is locked and rejects login; force it empty
-  # so "root" + <enter> works. This is a throwaway live installer ISO — no
-  # secrets, no persistence — so an empty root password is acceptable here.
-  users.users.root.initialHashedPassword = lib.mkForce "";
-
   # ── Auto-login root on TTY1 ──
+  # Root has no password (locked account) and there is no SSH or network
+  # login: the only entry point is the autologin console on TTY1, which runs
+  # the installer. If an install fails, its real cause is shown in the error
+  # dialog (which includes the tail of /tmp/installer.log); no shell needed.
   services.getty.autologinUser = "root";
 
   # ── Run installer on TTY1 login ──
