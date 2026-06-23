@@ -10,6 +10,13 @@
 let
   liveAgents = import ./live-agents.nix { inherit mkHermesAgent; };
   piperVoices = pkgs.callPackage ../pkgs/piper-voices { };
+
+  # Agent names defined in ./live-agents.nix. Kept in sync here so we can attach
+  # boot-robustness overrides to their generated docker-hermes-<name> units.
+  liveAgentNames = [
+    "default"
+    "research"
+  ];
 in
 {
   imports = liveAgents ++ [
@@ -42,9 +49,42 @@ in
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = true;
 
+  # ── Boot robustness for the agent containers ──
+  # The live ISO is ephemeral: the ~1.3 GB Hermes image is re-pulled into the
+  # RAM overlay on every boot, so the docker-hermes-* units race the network.
+  # Without this they pull before the link is up, fail ~5× fast, hit the
+  # systemd start-limit, and wedge until you manually `reset-failed`+`restart`.
+  #
+  #   1. Order after network-online.target so the pull waits for connectivity.
+  #   2. Disable the start-limit and retry every 10s, so a slow/late network
+  #      just means it keeps trying until the pull succeeds — no manual steps.
+  systemd.services = lib.genAttrs (map (n: "docker-hermes-${n}") liveAgentNames) (_: {
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    startLimitIntervalSec = 0; # [Unit] — disable the start-rate limit
+    serviceConfig = {
+      Restart = lib.mkForce "on-failure";
+      RestartSec = lib.mkForce "10s";
+    };
+  });
+
   # ── ISO-specific packages ──
+  # The live ISO embeds the full repo and can also install to disk via
+  # /etc/tentaflake/installer/installer.sh, so it must ship the same disk
+  # toolchain as the installer ISO (parted, mkfs.*, nixos-install, …).
+  # util-linux/cryptsetup cover the wipefs/swapoff/luks-close path for
+  # re-partitioning a previously-used disk.
   environment.systemPackages = with pkgs; [
     piperVoices
-    dialog
+    dialog # TUI wizard
+    parted # partitioning (installer.sh)
+    gptfdisk # sgdisk — zap/GPT repair
+    dosfstools # mkfs.fat (EFI partition)
+    e2fsprogs # mkfs.ext4 (root partition)
+    util-linux # wipefs, swapoff, lsblk
+    cryptsetup # close stray LUKS mappings before re-partitioning
+    nixos-install-tools # nixos-install, nixos-generate-config
+    git # flake operations during install
+    jq # JSON utilities
   ];
 }
