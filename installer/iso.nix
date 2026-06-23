@@ -31,11 +31,13 @@
     dialog # TUI wizard (whiptail-compatible)
     jq # JSON utils (future use)
     parted # Partitioning
-    gptfdisk # GPT disk tools
+    gptfdisk # GPT disk tools (sgdisk)
     dosfstools # mkfs.fat
     e2fsprogs # mkfs.ext4
     nixos-install-tools # nixos-install, nixos-generate-config
     git # For potential flake operations
+    cryptsetup # luksClose for previously-encrypted disks
+    lvm2 # dmsetup, vgchange for LVM on previously-used disks
   ];
 
   # ── NetworkManager for install-time connectivity ──

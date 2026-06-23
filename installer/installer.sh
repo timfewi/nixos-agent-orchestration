@@ -143,6 +143,39 @@ Proceed?" 14 60 || die "Installation cancelled."
 # ════════════════════════════════════════════════════════════
 # STEP 8: Partition and mount
 # ════════════════════════════════════════════════════════════
+# Under the hood:
+#   We create two partitions on the target disk using sgdisk:
+#     1. EFI System Partition (ESP): 1 GB, FAT32, type ef00
+#        - Required for UEFI boot. The bootloader (systemd-boot)
+#          lives here. Kernel images, initrd, and EFI drivers
+#          are stored on this partition.
+#     2. Root partition: rest of the disk, ext4, type 8300
+#        - Contains the entire NixOS system: /nix/store, /etc,
+#          /var, /home, everything. NixOS uses a read-only
+#          /nix/store with symlinks from /etc and /run.
+#
+#   We use pure sgdisk (from gptfdisk) instead of mixing sgdisk
+#   with parted because:
+#     - sgdisk uses BLKRRPART ioctl (full partition table re-read)
+#     - parted uses BLKPG ioctl (per-partition add/remove)
+#     - Mixing both can confuse the kernel on NVMe drives:
+#       sgdisk says "table wiped", then parted says "add partition",
+#       kernel gets conflicting signals and silently ignores parted
+#     - partprobe (which we'd need after parted) has a known bug
+#       where it silently does nothing on NVMe
+#     - One tool, one notification mechanism = reliable
+#
+#   We also wait for the partition device nodes (/dev/nvme0n1p1,
+#   /dev/nvme0n1p2) to appear before formatting. After sgdisk
+#   writes the partition table, the kernel needs time to create
+#   the block devices. Without this wait, mkfs or mount would
+#   fail with "special device does not exist".
+#
+#   After mkfs, we wait AGAIN because writing a new filesystem
+#   can trigger a udev "change" event that briefly removes and
+#   re-creates the partition device node. If mount races this
+#   window, it fails even though the filesystem is valid.
+# ────────────────────────────────────────────────────────────
 dialog --infobox "Partitioning $DISK ..." 4 50
 
 # Release and wipe the target first, so a previously-used disk can't block
@@ -150,6 +183,17 @@ dialog --infobox "Partitioning $DISK ..." 4 50
 umount -R /mnt 2>/dev/null || true
 swapoff -a 2>/dev/null || true
 for part in "${DISK}"*[0-9]; do umount "$part" 2>/dev/null || true; done
+
+# Close any LUKS containers on the target — they'll be wiped anyway.
+# Without this, sgdisk --zap-all fails with "device busy" on a
+# previously-encrypted disk.
+for mapper in /dev/mapper/luks-*; do
+  [ -b "$mapper" ] || continue
+  # Only close containers that sit on our disk's partitions
+  src=$(dmsetup table "${mapper#/dev/mapper/}" 2>/dev/null | grep -o "${DISK##*/}[^ ]*" || true)
+  [ -n "$src" ] && cryptsetup close "${mapper#/dev/mapper/}" >>"$INSTALL_LOG" 2>&1 || true
+done
+
 wipefs -a "$DISK" >>"$INSTALL_LOG" 2>&1 || true
 
 # Determine partition names early (handle NVMe: /dev/nvme0n1p1 vs /dev/sda1)
@@ -170,24 +214,69 @@ fi
 #   • partprobe is known to silently no-op on NVMe
 #   • singe tool, single notification mechanism → no kernel confusion
 
+# ── Partitioning strategy ──
+# Under the hood, sgdisk is a CLI wrapper around libgpt (GPT fdisk).
+# Each -n flag creates a partition entry in the GPT table on disk:
+#
+#   sgdisk -n <partnum>:<start>:<end> -t <partnum>:<typecode> <device>
+#
+# We use start=0 ("the next free aligned sector") and +SIZE lengths so
+# sgdisk computes the boundaries itself. Hand-picking absolute MiB offsets
+# is error-prone: the end of one partition and the start of the next must
+# differ by at least one sector, or sgdisk rejects the overlap. Letting
+# sgdisk track the cursor (start=0) guarantees back-to-back, non-overlapping,
+# 1 MiB-aligned partitions. (1 MiB alignment avoids read-modify-write on
+# 4K-sector drives; the first 1 MiB also reserves room for the GPT header
+# + protective MBR.)
+
+# Wipe any existing GPT/MBR structures so a previously-used disk starts clean.
 sgdisk --zap-all "$DISK" >>"$INSTALL_LOG" 2>&1 ||
   die "Failed to zap partition table on $DISK"
-sgdisk -o "$DISK" >>"$INSTALL_LOG" 2>&1 ||
-  die "Failed to create fresh GPT on $DISK"
 
-# EFI partition: 1GB (type ef00 = ESP)
-sgdisk -n 1:1MiB:1025MiB -t 1:ef00 -c 1:"EFI" "$DISK" >>"$INSTALL_LOG" 2>&1 ||
-  die "Failed to create EFI partition"
+# Create a fresh GPT and BOTH partitions in a SINGLE sgdisk invocation.
+#
+# Why one call: sgdisk lays partitions out in command order, tracking the
+# next free aligned sector itself. Splitting the ESP and root into separate
+# calls with absolute MiB offsets is what broke the old version — the ESP
+# was created as 1MiB:1025MiB (ending at sector 2099200, inclusive) and the
+# root was then asked to START at 1025MiB (sector 2099200 too). Those
+# overlap on exactly one sector, so sgdisk refused partition 2 with
+# "Could not create partition 2 ..." → the "Failed to create root
+# partition" error. Using start=0 ("next free aligned sector") and a
+# +SIZE length lets sgdisk place them back-to-back with no overlap.
+#
+#   -o                 create a fresh empty GPT
+#   -n 1:0:+1024M      partition 1: next free sector, 1 GiB long (ESP)
+#   -t 1:ef00          EFI System Partition type (UEFI scans for this)
+#   -c 1:EFI           GPT partition name
+#   -n 2:0:0           partition 2: next free sector → last usable sector
+#   -t 2:8300          Linux filesystem type
+#   -c 2:NixOS         GPT partition name
+#
+# ESP is 1 GiB (generous — most distros use 512 MB) to leave room for
+# multiple kernels and systemd-boot backups across NixOS generations.
+sgdisk -o \
+  -n 1:0:+1024M -t 1:ef00 -c 1:"EFI" \
+  -n 2:0:0 -t 2:8300 -c 2:"NixOS" \
+  "$DISK" >>"$INSTALL_LOG" 2>&1 ||
+  die "Failed to create partitions on $DISK"
 
-# Root partition: rest (type 8300 = Linux filesystem)
-sgdisk -n 2:1025MiB:0 -t 2:8300 -c 2:"NixOS" "$DISK" >>"$INSTALL_LOG" 2>&1 ||
-  die "Failed to create root partition"
-
-# Force kernel to re-read the partition table — more reliable than partprobe
+# Force kernel to re-read the partition table
+# blockdev --rereadpt sends BLKRRPART ioctl to the kernel block device
+# driver. This makes the kernel re-scan the partition table from disk
+# and create/remove device nodes under /dev/ accordingly.
+# More reliable than partprobe (which uses BLKPG and can silently
+# no-op on NVMe — known kernel bug).
 blockdev --rereadpt "$DISK" >>"$INSTALL_LOG" 2>&1 ||
   die "Failed to re-read partition table"
 
-# Wait for partition device nodes to appear
+# Wait for partition device nodes to appear under /dev/
+# After blockdev --rereadpt, the kernel asynchronously creates block
+# devices like /dev/nvme0n1p1 and /dev/nvme0n1p2.  The udev daemon
+# processes these events with a small delay.  We poll for the actual
+# device files (checking with [ -b ]) rather than sleeping a fixed
+# amount, because NVMe drives can take variable time depending on
+# the controller firmware and kernel version.  10 seconds max.
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   [ -b "$ROOT_PART" ] && [ -b "$EFI_PART" ] && break
   sleep 1
@@ -197,17 +286,27 @@ done
 [ -b "$EFI_PART" ] || die "EFI partition $EFI_PART never appeared after partitioning"
 
 # ── Format ──
+# mkfs.fat creates the FAT32 filesystem required by UEFI for the ESP.
+# The -n BOOT flag sets the filesystem label (shows in lsblk, useful
+# for identifying the partition later).
 dialog --infobox "Formatting partitions ..." 4 50
 mkfs.fat -F 32 -n BOOT "$EFI_PART" >>"$INSTALL_LOG" 2>&1 ||
   die "Failed to format EFI partition"
+
+# mkfs.ext4 -F -L nixos creates the root ext4 filesystem.
+# -F forces creation even if there are leftover superblock signatures.
+# -L nixos sets the volume label (visible in /dev/disk/by-label/nixos).
+# The kernel's ext4 driver will read this superblock on mount.
 mkfs.ext4 -F -L nixos "$ROOT_PART" >>"$INSTALL_LOG" 2>&1 ||
   die "Failed to format root partition"
 
 # ── Wait after mkfs ──
-# mkfs.ext4 writes a new filesystem, which can trigger a udev change event
-# that briefly removes and re-creates the partition node.  If we try to
-# mount during that window the mount will fail even though the filesystem
-# is perfectly valid.
+# mkfs.ext4 writes a new ext4 superblock and block group descriptors.
+# This changes the partition's content, which triggers a udev "change"
+# event. On NVMe, some udev rules can briefly remove and re-add the
+# partition device node during processing. If mount runs in this window,
+# it gets ENXIO (no such device) even though the filesystem is valid.
+# We wait for the device to stabilize before mounting.
 udevadm settle 2>/dev/null || true
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   [ -b "$ROOT_PART" ] && [ -b "$EFI_PART" ] && break
@@ -217,6 +316,11 @@ done
 [ -b "$ROOT_PART" ] || die "Root partition $ROOT_PART disappeared after mkfs"
 
 # ── Mount ──
+# mount attaches the filesystem to the directory tree at /mnt.
+# The kernel reads the ext4 superblock from $ROOT_PART, validates it,
+# and makes the filesystem accessible under /mnt.
+# We mount root first at /mnt, then the ESP at /mnt/boot (so the
+# bootloader files end up on the ESP when nixos-install writes them).
 dialog --infobox "Mounting partitions ..." 4 50
 mount "$ROOT_PART" /mnt >>"$INSTALL_LOG" 2>&1 ||
   die "Failed to mount root partition ($ROOT_PART)"
