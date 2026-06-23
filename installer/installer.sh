@@ -222,7 +222,9 @@ for mapper in /dev/mapper/luks-*; do
   [ -b "$mapper" ] || continue
   # Only close containers that sit on our disk's partitions
   src=$(dmsetup table "${mapper#/dev/mapper/}" 2>/dev/null | grep -o "${DISK##*/}[^ ]*" || true)
-  [ -n "$src" ] && cryptsetup close "${mapper#/dev/mapper/}" >>"$INSTALL_LOG" 2>&1 || true
+  if [ -n "$src" ]; then
+    cryptsetup close "${mapper#/dev/mapper/}" >>"$INSTALL_LOG" 2>&1 || true
+  fi
 done
 
 wipefs -a "$DISK" >>"$INSTALL_LOG" 2>&1 || true
@@ -402,8 +404,9 @@ EOF
 # reproducible. (The previous hardcoded "nixos-26.11" branch did not exist
 # yet, so nixos-install could not fetch nixpkgs and failed.)
 NIXPKGS_REV=$(jq -r '.nodes.nixpkgs.locked.rev' "$REPO_DIR/flake.lock" 2>/dev/null)
-[ -n "$NIXPKGS_REV" ] && [ "$NIXPKGS_REV" != "null" ] ||
+if [ -z "$NIXPKGS_REV" ] || [ "$NIXPKGS_REV" = "null" ]; then
   die "Could not read nixpkgs revision from $REPO_DIR/flake.lock"
+fi
 
 # Generate flake.nix for the installed system
 cat >"$TARGET_NIXOS/flake.nix" <<FLAKEEOF
