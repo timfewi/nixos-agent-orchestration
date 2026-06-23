@@ -91,7 +91,14 @@ HOSTNAME=""
 while [ -z "$HOSTNAME" ]; do
   HOSTNAME=$(dialog --stdout --title "Hostname" \
     --inputbox "Enter the hostname for this machine" 8 50 "agent-machine")
-  [ -z "$HOSTNAME" ] && dialog --title "Invalid" --msgbox "Hostname cannot be empty." 5 40
+  if [ -z "$HOSTNAME" ]; then
+    dialog --title "Invalid" --msgbox "Hostname cannot be empty." 5 40
+  # Restrict to RFC-1123 label chars. Anything else (e.g. " or #) would be
+  # interpolated raw into the generated Nix config / flake URI and break it.
+  elif ! printf '%s' "$HOSTNAME" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$'; then
+    dialog --title "Invalid" --msgbox "Hostname may only contain letters, digits and hyphens (not at the start/end)." 7 50
+    HOSTNAME=""
+  fi
 done
 
 # ════════════════════════════════════════════════════════════
@@ -101,7 +108,13 @@ USERNAME=""
 while [ -z "$USERNAME" ]; do
   USERNAME=$(dialog --stdout --title "Username" \
     --inputbox "Enter the primary admin username" 8 50 "agent")
-  [ -z "$USERNAME" ] && dialog --title "Invalid" --msgbox "Username cannot be empty." 5 40
+  if [ -z "$USERNAME" ]; then
+    dialog --title "Invalid" --msgbox "Username cannot be empty." 5 40
+  # Restrict to a valid Linux user name (same as useradd's NAME_REGEX).
+  elif ! printf '%s' "$USERNAME" | grep -qE '^[a-z_][a-z0-9_-]*$'; then
+    dialog --title "Invalid" --msgbox "Username must start with a letter/underscore and contain only lowercase letters, digits, '-' or '_'." 8 50
+    USERNAME=""
+  fi
 done
 
 # ════════════════════════════════════════════════════════════
@@ -209,11 +222,22 @@ Proceed?" 14 60 || die "Installation cancelled."
 # ────────────────────────────────────────────────────────────
 dialog --infobox "Partitioning $DISK ..." 4 50
 
+# Defensive guard: $DISK is sourced from a dialog menu built off lsblk, so it
+# should always be a real block device — but never run the destructive steps
+# below against anything else.
+[ -b "$DISK" ] || die "Selected target '$DISK' is not a block device."
+
 # Release and wipe the target first, so a previously-used disk can't block
 # partitioning (busy) or confuse mount later with stale signatures.
 umount -R /mnt 2>/dev/null || true
 swapoff -a 2>/dev/null || true
 for part in "${DISK}"*[0-9]; do umount "$part" 2>/dev/null || true; done
+
+# Deactivate any LVM volume groups first. An active VG holds its underlying
+# partitions open, so sgdisk/blockdev would fail to re-read the partition
+# table ("device busy") on a previously-LVM disk. Do this BEFORE closing
+# LUKS, since LVM may sit on top of a LUKS container.
+vgchange -an >>"$INSTALL_LOG" 2>&1 || true
 
 # Close any LUKS containers on the target — they'll be wiped anyway.
 # Without this, sgdisk --zap-all fails with "device busy" on a
@@ -245,7 +269,7 @@ fi
 # sgdisk is more reliable than mixing sgdisk + parted:
 #   • Uses BLKRRPART ioctl (full table re-read) not BLKPG (per-partition add)
 #   • partprobe is known to silently no-op on NVMe
-#   • singe tool, single notification mechanism → no kernel confusion
+#   • single tool, single notification mechanism → no kernel confusion
 
 # ── Partitioning strategy ──
 # Under the hood, sgdisk is a CLI wrapper around libgpt (GPT fdisk).
@@ -497,6 +521,9 @@ dialog --infobox "Setting user password ..." 4 50
 echo "$USERNAME:$PASSWORD" | chpasswd --root /mnt 2>>"$INSTALL_LOG" ||
   dialog --title "Warning" --msgbox "Failed to set password for '$USERNAME'. Set manually after boot." 6 60
 
+# Drop the plaintext password from shell memory now that it has been applied.
+unset PASSWORD
+
 # Note: root account not given password — use sudo from admin user
 
 # ════════════════════════════════════════════════════════════
@@ -506,6 +533,15 @@ cp "$REPO_DIR/hermes.env.example" "$TARGET_NIXOS/hermes.env.example" 2>/dev/null
 cp "$REPO_DIR/my-agents.nix.example" "$TARGET_NIXOS/my-agents.nix.example" 2>/dev/null || true
 cp -r "$REPO_DIR/docs" "$TARGET_NIXOS/docs" 2>/dev/null || true
 cp -r "$REPO_DIR/skills" "$TARGET_NIXOS/skills" 2>/dev/null || true
+
+# Commit everything produced after the initial config commit — the flake.lock
+# that nixos-install wrote, plus the bundled examples/docs/skills copied above —
+# so /etc/nixos is a clean git tree and the first nixos-rebuild doesn't warn
+# about a dirty tree.
+git -C "$TARGET_NIXOS" add -A >>"$INSTALL_LOG" 2>&1 || true
+git -C "$TARGET_NIXOS" \
+  -c user.email=installer@tentaflake -c user.name="Tentaflake Installer" \
+  commit -q -m "Add flake.lock and bundled examples" >>"$INSTALL_LOG" 2>&1 || true
 
 # ════════════════════════════════════════════════════════════
 # DONE
