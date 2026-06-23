@@ -27,7 +27,7 @@ jobs:
       - name: nix fmt check
         run: nix fmt -- --ci
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: pkgs/hermes-auditd/go.mod
           cache-dependency-path: pkgs/hermes-auditd/go.sum
