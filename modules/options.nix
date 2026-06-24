@@ -134,5 +134,40 @@ in
         default = true;
       };
     };
+
+    # ── Interactive shell experience for SSH/console operators ──
+    shell = {
+      enable =
+        lib.mkEnableOption "improved interactive shell (prompt, completion, MOTD, hermes CLI, tools)"
+        // {
+          default = true;
+        };
+
+      motd = {
+        enable = lib.mkEnableOption "dynamic login banner (tentaflake-status) on SSH/console login" // {
+          default = true;
+        };
+      };
+
+      tools = {
+        enable =
+          lib.mkEnableOption "curated modern CLI tools (eza, bat, fd, ripgrep, fzf, htop, btop, …)"
+          // {
+            default = true;
+          };
+      };
+
+      starship = {
+        enable = lib.mkEnableOption "the starship prompt (falls back to a colored bash prompt if off)" // {
+          default = true;
+        };
+      };
+
+      hermesCli = {
+        enable = lib.mkEnableOption "the 'hermes' agent-management CLI" // {
+          default = true;
+        };
+      };
+    };
   };
 }

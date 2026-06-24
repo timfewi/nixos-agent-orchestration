@@ -136,6 +136,10 @@
             tentaflake.packages.enable = true;
             tentaflake.users.enable = true;
             tentaflake.tailscale.enable = true;
+            tentaflake.shell.enable = true;
+            # Audit daemon: records agent filesystem activity for `hermes top`.
+            # watchDirs auto-derives from the agents defined in my-agents.nix.
+            tentaflake.hermes-auditd.enable = true;
           }
           self.nixosModules.default
           ./configuration.nix
@@ -180,6 +184,14 @@
             tentaflake.packages.enable = true;
             tentaflake.users.enable = true;
             tentaflake.tailscale.enable = true;
+            # Shell extras are useful on the live ISO too, but the live profile
+            # ships its own static users.motd — disable the dynamic banner so
+            # operators don't see two banners stacked on every login.
+            tentaflake.shell.enable = true;
+            tentaflake.shell.motd.enable = false;
+            # Audit daemon on too, so `hermes top` works on the live appliance —
+            # watchDirs auto-derives from the live agents (default + research).
+            tentaflake.hermes-auditd.enable = true;
           }
           self.nixosModules.default
           ./configuration.nix
