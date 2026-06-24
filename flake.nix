@@ -151,6 +151,7 @@
             tentaflake.shell.zsh.enable = true;
             tentaflake.shell.zoxide.enable = true;
             tentaflake.shell.lazygit.enable = true;
+            tentaflake.shell.tmux.enable = true;
             tentaflake.editor.nvf.enable = true;
             # Audit daemon: records agent filesystem activity for `hermes top`.
             # watchDirs auto-derives from the agents defined in my-agents.nix.
@@ -205,6 +206,7 @@
             # operators don't see two banners stacked on every login.
             tentaflake.shell.enable = true;
             tentaflake.shell.motd.enable = false;
+            tentaflake.shell.tmux.enable = true;
             # Audit daemon on too, so `hermes top` works on the live appliance —
             # watchDirs auto-derives from the live agents (default + research).
             tentaflake.hermes-auditd.enable = true;

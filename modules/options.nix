@@ -183,6 +183,20 @@ in
         };
       };
 
+      tmux = {
+        enable = lib.mkEnableOption "tmux terminal multiplexer with a sensible system config" // {
+          default = false;
+        };
+      };
+
+      kitty = {
+        enable =
+          lib.mkEnableOption "the kitty GUI terminal (auto-starts tmux on launch; needs a graphical session)"
+          // {
+            default = false;
+          };
+      };
+
       hermesCli = {
         enable = lib.mkEnableOption "the 'hermes' agent-management CLI" // {
           default = true;

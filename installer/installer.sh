@@ -176,12 +176,14 @@ TIMEZONE=$(dialog --stdout --title "Timezone" \
 # the generated flake further down. Defaults are all "on" — uncheck to skip.
 # `|| FEATURES=""` keeps `set -e` from aborting if the user cancels the dialog.
 FEATURES=$(dialog --stdout --title "Optional Features" --checklist \
-  "Choose extras to install.\nSPACE toggles an item, ENTER confirms." 17 76 6 \
+  "Choose extras to install.\nSPACE toggles an item, ENTER confirms." 20 78 8 \
   zsh "Zsh + Oh My Zsh (autosuggestions, syntax highlight, fzf-tab)" on \
   zoxide "zoxide — smart 'cd' that learns your frequent directories" on \
   nvf "Neovim (nvf) — LSP, treesitter, telescope, git, completion" on \
   lazygit "lazygit — a fast terminal UI for git" on \
-  tools "Modern CLI tools (eza, bat, fd, ripgrep, fzf, htop, btop)" on) || FEATURES=""
+  tmux "tmux — terminal multiplexer (persistent sessions over SSH)" on \
+  tools "Modern CLI tools (eza, bat, fd, ripgrep, fzf, htop, btop)" on \
+  kitty "kitty GUI terminal, auto-starts tmux (needs a desktop)" off) || FEATURES=""
 # Some dialog builds wrap each tag in quotes; strip them so matching is simple.
 FEATURES=${FEATURES//\"/}
 
@@ -206,6 +208,12 @@ if ! has_feature zoxide; then
 fi
 if has_feature lazygit; then
   TF_TOGGLES+="            tentaflake.shell.lazygit.enable = true;"$'\n'
+fi
+if has_feature tmux; then
+  TF_TOGGLES+="            tentaflake.shell.tmux.enable = true;"$'\n'
+fi
+if has_feature kitty; then
+  TF_TOGGLES+="            tentaflake.shell.kitty.enable = true;"$'\n'
 fi
 if ! has_feature tools; then
   TF_TOGGLES+="            tentaflake.shell.tools.enable = false;"$'\n'

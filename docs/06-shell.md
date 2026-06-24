@@ -101,8 +101,30 @@ tentaflake.shell.zsh.enable = true;      # zsh + Oh My Zsh + autosuggestions +
                                          #   syntax-highlighting + fzf-tab
 tentaflake.shell.zoxide.enable = true;   # `z` smart-cd (bash + zsh) — default on
 tentaflake.shell.lazygit.enable = true;  # lazygit + the `lg` alias
+tentaflake.shell.tmux.enable = true;     # tmux + sensible system config
+tentaflake.shell.kitty.enable = true;    # kitty GUI terminal (auto-starts tmux)
 tentaflake.editor.nvf.enable = true;     # Neovim via nvf (needs the nvf input)
 ```
+
+- **tmux** installs a configured tmux (mouse on, `clock24`, 10k scrollback,
+  1-based windows). Great for persistent sessions over SSH.
+- **kitty** installs the kitty terminal and makes every locally-launched kitty
+  window **auto-start tmux** (`tmux new-session -A -s main`), skipping SSH
+  sessions and avoiding nesting. Enabling kitty implies tmux. Note kitty is a
+  *graphical* terminal — only useful on a host with a desktop, so it's off by
+  default (a headless agent host never runs it).
+
+### Handy aliases
+
+Always present with `shell.enable` (bash + zsh):
+
+| Alias | Expands to |
+|---|---|
+| `rebuild` | `sudo nixos-rebuild switch --flake /etc/nixos#<hostName>` |
+| `reload` | `exec $SHELL` (reload the current shell) |
+| `cls` | `clear` |
+| `lg` | `lazygit` (when `lazygit.enable`) |
+| `ls`/`ll`/`la`/`cat`/`tree` | `eza`/`bat` equivalents (when `tools.enable`) |
 
 - **zsh** — when enabled it becomes the admin user's login shell (overriding
   `adminShell`), with Oh My Zsh (`git`, `sudo`, `systemd`, and your container
@@ -139,7 +161,7 @@ instead (`user@host:cwd (git-branch)`, red username when root).
 ## Installer feature checklist
 
 The installer ISO asks which extras to install via a checklist (zsh, zoxide,
-nvf, lazygit, modern tools — all pre-checked). Your choices are written straight
+nvf, lazygit, tmux, modern tools — pre-checked — plus kitty, off by default). Your choices are written straight
 into the generated `/etc/nixos/flake.nix` as `tentaflake.*` toggles (and, for
 nvf, the `nvf` flake input pinned to the ISO's revision + the editor module
 import). Everything stays editable afterward — flip a toggle and
