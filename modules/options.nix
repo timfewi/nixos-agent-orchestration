@@ -163,6 +163,26 @@ in
         };
       };
 
+      zsh = {
+        enable =
+          lib.mkEnableOption "zsh as the interactive/login shell (Oh My Zsh, autosuggestions, syntax highlighting, fzf-tab)"
+          // {
+            default = false;
+          };
+      };
+
+      zoxide = {
+        enable = lib.mkEnableOption "zoxide smart directory jumping (cross-shell)" // {
+          default = true;
+        };
+      };
+
+      lazygit = {
+        enable = lib.mkEnableOption "lazygit terminal Git UI (adds the 'lg' alias)" // {
+          default = false;
+        };
+      };
+
       hermesCli = {
         enable = lib.mkEnableOption "the 'hermes' agent-management CLI" // {
           default = true;

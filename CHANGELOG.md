@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `modules/shell.nix`: optional **zsh** (`tentaflake.shell.zsh.enable`) — Oh My Zsh + autosuggestions + syntax-highlighting + fzf-tab, with Starship as the prompt; becomes the admin login shell when enabled. Plus `tentaflake.shell.zoxide.enable` (smart-cd, cross-shell, default on) and `tentaflake.shell.lazygit.enable` (+ `lg` alias). Aliases moved to `environment.shellAliases` so they apply to bash and zsh.
+- `modules/editor.nix` + `nixosModules.editor`: optional **Neovim via nvf** (`tentaflake.editor.nvf.enable`) — LSP, treesitter, telescope, gitsigns, blink-cmp; lean language set (nix/bash/lua/markdown/yaml). Added the `nvf` flake input (kept out of `nixosModules.default` so external consumers aren't forced to have it).
+- Installer: a **feature checklist** (zsh / zoxide / nvf / lazygit / modern tools) whose selections are written into the generated `/etc/nixos/flake.nix` as `tentaflake.*` toggles (nvf also injects the rev-pinned input + editor module import).
 - `hermes-top` — live TUI dashboard (bubbletea) of agent filesystem activity, launched via `hermes top`. Reads the `hermes-auditd` SQLite DB directly (no network surface — runs over Tailscale SSH). Implements the read side the daemon previously discarded (the `internal/store` already had the query methods).
 - `hermes-auditd` is now wired up: enabled by default on `agent-host`, `watchDirs` auto-derives from the agents defined in `my-agents.nix`, runs as an unprivileged `hermes-audit` user with only `CAP_DAC_READ_SEARCH`, and stores its DB group-readable so the admin can run `hermes top` without sudo.
 - `internal/store`: `Since(afterID, limit)` (incremental tail) and `AgentRows(window)` (per-agent activity summary) read helpers.

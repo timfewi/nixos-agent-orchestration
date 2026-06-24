@@ -219,27 +219,57 @@ let
     '';
   };
 
-  # Aliases differ depending on whether the modern tool set is installed.
-  lsAlias =
+  # Aliases shared across bash and zsh (interactive shells only). The ls/cat
+  # set swaps to the modern tools when tentaflake.shell.tools is enabled.
+  sharedAliases = {
+    ".." = "cd ..";
+    "..." = "cd ../..";
+    grep = "grep --color=auto";
+    df = "df -h";
+    free = "free -h";
+  }
+  // (
     if cfg.tools.enable then
-      ''
-        alias ls='eza --group-directories-first'
-        alias ll='eza -lah --group-directories-first --git'
-        alias la='eza -a --group-directories-first'
-        alias tree='eza --tree'
-        alias cat='bat --paging=never'
-      ''
+      {
+        ls = "eza --group-directories-first";
+        ll = "eza -lah --group-directories-first --git";
+        la = "eza -a --group-directories-first";
+        tree = "eza --tree";
+        cat = "bat --paging=never";
+      }
     else
-      ''
-        alias ls='ls --color=auto'
-        alias ll='ls -alh --color=auto'
-        alias la='ls -A --color=auto'
-      '';
+      {
+        ls = "ls --color=auto";
+        ll = "ls -alh --color=auto";
+        la = "ls -A --color=auto";
+      }
+  )
+  // lib.optionalAttrs cfg.lazygit.enable { lg = "lazygit"; };
+
+  # Login banner — identical behavior, per-shell guard syntax. Shown once per
+  # interactive SSH/console login, never on inner subshells.
+  bashMotd = ''
+    if [[ $- == *i* ]] && [ -z "''${TENTAFLAKE_MOTD_SHOWN:-}" ]; then
+      export TENTAFLAKE_MOTD_SHOWN=1
+      if [ -n "''${SSH_CONNECTION:-}" ] || { shopt -q login_shell 2>/dev/null; }; then
+        tentaflake-status 2>/dev/null || true
+      fi
+    fi
+  '';
+  zshMotd = ''
+    if [[ -o interactive ]] && [[ -z "''${TENTAFLAKE_MOTD_SHOWN:-}" ]]; then
+      export TENTAFLAKE_MOTD_SHOWN=1
+      if [[ -n "''${SSH_CONNECTION:-}" ]] || [[ -o login ]]; then
+        tentaflake-status 2>/dev/null || true
+      fi
+    fi
+  '';
 in
 lib.mkIf cfg.enable {
   environment.systemPackages =
     lib.optional cfg.hermesCli.enable hermesCli
     ++ lib.optional cfg.motd.enable statusBanner
+    ++ lib.optional cfg.lazygit.enable pkgs.lazygit
     ++ lib.optionals cfg.tools.enable (
       with pkgs;
       [
@@ -259,21 +289,72 @@ lib.mkIf cfg.enable {
       ]
     );
 
-  # ── Prompt ──
-  # Starship gives a clean, fast, cross-shell prompt. When disabled we install
-  # a hand-rolled colored bash prompt instead (see interactiveShellInit below).
+  # Aliases applied to every interactive shell (bash + zsh).
+  environment.shellAliases = sharedAliases;
+
+  # ── Login shell ──
+  # Enabling zsh makes it the admin user's interactive + login shell, overriding
+  # tentaflake.adminShell (which otherwise selects the shell, e.g. bash).
+  users.users.${config.tentaflake.adminUser}.shell = lib.mkIf cfg.zsh.enable (lib.mkForce pkgs.zsh);
+
+  # ── Prompt (cross-shell) ──
+  # Starship gives a clean, fast prompt for both bash and zsh. When disabled we
+  # install a hand-rolled colored bash prompt instead (see interactiveShellInit).
   programs.starship = lib.mkIf cfg.starship.enable {
     enable = true;
     settings = {
       add_newline = false;
       character = {
-        success_symbol = "[𜷷➜](bold green)";
-        error_symbol = "[𜷶➜](bold red)";
+        success_symbol = "[❄](bold green)";
+        error_symbol = "[❄](bold red)";
       };
     };
   };
 
-  # ── Bash quality-of-life ──
+  # ── Smart directory jumping (cross-shell) ──
+  programs.zoxide = lib.mkIf cfg.zoxide.enable {
+    enable = true;
+  };
+
+  # ── zsh (optional): Oh My Zsh + autosuggestions + syntax highlight + fzf-tab ──
+  programs.zsh = lib.mkIf cfg.zsh.enable {
+    enable = true;
+    enableCompletion = true;
+    autosuggestions.enable = true;
+    syntaxHighlighting.enable = true;
+    histSize = 100000;
+    setOptions = [
+      "HIST_IGNORE_DUPS"
+      "HIST_IGNORE_SPACE"
+      "SHARE_HISTORY"
+      "EXTENDED_HISTORY"
+    ];
+    ohMyZsh = {
+      enable = true;
+      # No theme — Starship owns the prompt. Plugins add completions/aliases.
+      plugins = [
+        "git"
+        "sudo"
+        "systemd"
+      ]
+      ++ lib.optional (backend == "docker") "docker"
+      ++ lib.optional (backend == "podman") "podman";
+    };
+    interactiveShellInit = ''
+      export EDITOR="''${EDITOR:-nano}"
+    ''
+    + lib.optionalString cfg.tools.enable ''
+      # fzf + fzf-tab (NixOS has no programs.fzf module to lean on, so source it).
+      [ -f ${pkgs.fzf}/share/fzf/completion.zsh ] && source ${pkgs.fzf}/share/fzf/completion.zsh
+      [ -f ${pkgs.fzf}/share/fzf/key-bindings.zsh ] && source ${pkgs.fzf}/share/fzf/key-bindings.zsh
+      source ${pkgs.zsh-fzf-tab}/share/fzf-tab/fzf-tab.plugin.zsh
+      zstyle ':completion:*' menu no
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
+    ''
+    + lib.optionalString cfg.motd.enable zshMotd;
+  };
+
+  # ── Bash quality-of-life (always present — the fallback when zsh is off) ──
   programs.bash = {
     completion.enable = true;
     interactiveShellInit = ''
@@ -283,15 +364,7 @@ lib.mkIf cfg.enable {
       export HISTCONTROL=ignoreboth
       export HISTTIMEFORMAT='%F %T  '
       shopt -s histappend checkwinsize 2>/dev/null || true
-
-      # Sensible defaults for interactive use.
       export EDITOR="''${EDITOR:-nano}"
-      alias grep='grep --color=auto'
-      alias ..='cd ..'
-      alias ...='cd ../..'
-      alias df='df -h'
-      alias free='free -h'
-      ${lsAlias}
     ''
     + lib.optionalString (!cfg.starship.enable) ''
       # Hand-rolled prompt: user@host:cwd (git branch) — red user when root.
@@ -303,14 +376,6 @@ lib.mkIf cfg.enable {
       if [ "$(id -u)" -eq 0 ]; then __tf_uc='\[\033[1;31m\]'; else __tf_uc='\[\033[1;32m\]'; fi
       PS1="''${__tf_uc}\u@\h\[\033[0m\]:\[\033[1;34m\]\w\[\033[0;33m\]\$(__tf_git_branch)\[\033[0m\]\$ "
     ''
-    + lib.optionalString cfg.motd.enable ''
-      # Login banner: once per SSH/console session, never on inner subshells.
-      if [[ $- == *i* ]] && [ -z "''${TENTAFLAKE_MOTD_SHOWN:-}" ]; then
-        export TENTAFLAKE_MOTD_SHOWN=1
-        if [ -n "''${SSH_CONNECTION:-}" ] || { shopt -q login_shell 2>/dev/null; }; then
-          tentaflake-status 2>/dev/null || true
-        fi
-      fi
-    '';
+    + lib.optionalString cfg.motd.enable bashMotd;
   };
 }

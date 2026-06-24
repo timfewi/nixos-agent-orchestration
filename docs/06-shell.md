@@ -92,10 +92,35 @@ tentaflake.hermes-auditd.enable = true;
 # tentaflake.hermes-auditd.retentionHours = 24;
 ```
 
+## zsh, zoxide, lazygit, Neovim
+
+Everything is opt-in — you're never locked into a shell or editor:
+
+```nix
+tentaflake.shell.zsh.enable = true;      # zsh + Oh My Zsh + autosuggestions +
+                                         #   syntax-highlighting + fzf-tab
+tentaflake.shell.zoxide.enable = true;   # `z` smart-cd (bash + zsh) — default on
+tentaflake.shell.lazygit.enable = true;  # lazygit + the `lg` alias
+tentaflake.editor.nvf.enable = true;     # Neovim via nvf (needs the nvf input)
+```
+
+- **zsh** — when enabled it becomes the admin user's login shell (overriding
+  `adminShell`), with Oh My Zsh (`git`, `sudo`, `systemd`, and your container
+  backend's plugin), autosuggestions, syntax highlighting, fzf-tab completion,
+  and Starship as the prompt. When disabled you stay on bash.
+- **Neovim (nvf)** lives in a separate module (`modules/editor.nix`) because it
+  needs the `nvf` flake input. The template wires it into its own hosts and
+  exports it as `nixosModules.editor`. The config is lean (LSP, treesitter,
+  telescope, gitsigns, blink-cmp; languages nix/bash/lua/markdown/yaml) — add
+  `languages.<lang>.enable` in a fork for a fuller dev stack. `EDITOR` becomes
+  `nvim` when enabled.
+
+These are set at install time by the **installer feature checklist** (see below),
+or by hand in your host config.
+
 ## Options
 
-All default to **on** for the installed `agent-host`. Set them in your host config
-(or `tentaflake.*` block):
+The base shell options default to **on** for the installed `agent-host`:
 
 ```nix
 tentaflake.shell.enable = true;            # master toggle for everything below
@@ -111,6 +136,15 @@ equivalents (`eza`, `bat`); turn it off to keep stock coreutils.
 When `starship.enable` is off, a hand-rolled colored bash prompt is installed
 instead (`user@host:cwd (git-branch)`, red username when root).
 
+## Installer feature checklist
+
+The installer ISO asks which extras to install via a checklist (zsh, zoxide,
+nvf, lazygit, modern tools — all pre-checked). Your choices are written straight
+into the generated `/etc/nixos/flake.nix` as `tentaflake.*` toggles (and, for
+nvf, the `nvf` flake input pinned to the ISO's revision + the editor module
+import). Everything stays editable afterward — flip a toggle and
+`sudo nixos-rebuild switch`.
+
 ## Defaults across the ISOs
 
 | Profile | `shell.enable` | `motd.enable` | Why |
@@ -122,11 +156,9 @@ instead (`user@host:cwd (git-branch)`, red username when root).
 ## Notes
 
 - The banner only prints on interactive SSH or console **login** shells, once per
-  session — inner subshells, `tmux` panes, and `ssh host -- cmd` stay quiet.
-- This module configures **bash** (the template's default `adminShell`). If your
-  fork switches the admin shell to zsh/fish, Starship and the package set still
-  apply, but the bash-specific aliases/prompt/banner init do not — port them to
-  your shell's init.
+  session — inner subshells, `tmux` panes, and `ssh host -- cmd` stay quiet. It is
+  wired for both **bash and zsh**; aliases come from `environment.shellAliases` so
+  they apply to whichever shell is active.
 - The `hermes` CLI assumes the container/unit naming produced by `mkHermesAgent`
   (`hermes-<name>` container, `<backend>-hermes-<name>.service` unit). If you run
   agents through some other mechanism, the CLI won't see them.
