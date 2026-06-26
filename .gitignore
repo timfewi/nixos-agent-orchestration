@@ -10,6 +10,10 @@ home.nix
 secrets/*.env
 !secrets/hermes.env.example
 
+# Personal local agent rules — private, never committed
+CLAUDE.local.md
+AGENT.local.md
+
 # Editor artifacts
 *.swp
 *.swo
