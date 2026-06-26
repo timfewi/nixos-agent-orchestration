@@ -405,7 +405,9 @@ in
   };
 
   users.groups = lib.mkIf createUser {
-    ${group} = lib.mkIf (gid != null) { inherit gid; };
+    # Always define the group (the system user's primary group must exist);
+    # only pin an explicit gid when one was provided.
+    ${group} = lib.optionalAttrs (gid != null) { inherit gid; };
   };
 
   # ── tmpfiles — create state directories owned by the container uid ──
