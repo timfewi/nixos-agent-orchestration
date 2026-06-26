@@ -23,6 +23,15 @@ This repo is a GENERIC template. NEVER commit domain-specific code (company conf
 hardware configs, API keys, secrets, agent SOUL.md/skills written for specific deployments).
 Domain-specific work belongs in FORKS, not here.
 
+## Keep Docs In Sync
+
+After any change that alters behavior, options, or usage, verify the docs are
+still accurate before finishing — and update them in the same change:
+
+- `README.md` and `docs/` — user-facing docs
+- this `AGENTS.md` / `CLAUDE.md` — agent instructions
+- relevant `.agents/skills/` — bundled skill docs
+
 ## Module Boundaries
 
 - `modules/` — reusable NixOS modules (generic, composable via `tentaflake.*.enable` options)
